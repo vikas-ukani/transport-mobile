@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+.env.development
+.gitignore
+.env.preview
+.env.production
+.vscode/settings.json
+.vscode/*

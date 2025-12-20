@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Transport",
+    "slug": "transport",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "CFBundleLocalizations": ["gu", "en", "hi", "gu", "en", "hi"]
+      },
+      "bundleIdentifier": "com.vikasdev.transport"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.vikasdev.transport"
     },
     "web": {
       "output": "static",
@@ -38,11 +43,34 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["gu", "en", "hi"],
+            "android": ["gu", "en", "hi"]
+          }
+        }
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f50a1386-5e23-4bb4-aca3-d9aa71d9629f"
+      }
+    },
+    "owner": "vikas-dev",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f50a1386-5e23-4bb4-aca3-d9aa71d9629f"
     }
   }
 }
