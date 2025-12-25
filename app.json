@@ -11,7 +11,11 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "CFBundleLocalizations": ["gu", "en", "hi", "gu", "en", "hi"]
+        "CFBundleLocalizations": [
+          "gu",
+          "en",
+          "hi"
+        ]
       },
       "bundleIdentifier": "com.vikasdev.transport"
     },
@@ -48,8 +52,16 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": ["gu", "en", "hi"],
-            "android": ["gu", "en", "hi"]
+            "ios": [
+              "gu",
+              "en",
+              "hi"
+            ],
+            "android": [
+              "gu",
+              "en",
+              "hi"
+            ]
           }
         }
       ],
@@ -62,10 +74,10 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f50a1386-5e23-4bb4-aca3-d9aa71d9629f"
+        "projectId": "cb3bde16-7906-41ce-a99a-e15400c4a587"
       }
     },
-    "owner": "vikas-dev",
+    "owner": "vikas-devv",
     "runtimeVersion": {
       "policy": "appVersion"
     },

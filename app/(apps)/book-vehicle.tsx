@@ -1,5 +1,5 @@
-import VehicleRegistrationScreen from '../../components/screens/VehicleRegistrationScreen';
+import CreateBookingScreen from '../../components/screens/CreateBookingScreen';
 
 export default function BookVehicle() {
-  return <VehicleRegistrationScreen />;
+  return <CreateBookingScreen />;
 }

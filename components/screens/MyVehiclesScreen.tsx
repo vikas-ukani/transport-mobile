@@ -249,7 +249,7 @@ const MyVehiclesScreen = () => {
       <View className='px-5 py-5 bg-white border-b border-gray-100 shadow-md'>
         <TouchableOpacity
           className='py-4 rounded-xl shadow-md bg-primary'
-          onPress={() => router.push('/(apps)/book-vehicle')}
+          onPress={() => router.push('/(apps)/vehicle/new-vehicle')}
           activeOpacity={0.8}
         >
           <View className='flex-row justify-center items-center'>

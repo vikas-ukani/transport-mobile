@@ -49,7 +49,8 @@
     "profilePhoto": "પ્રોફાઇલ ફોટો",
     "myVehicles": "મારા વાહનો",
     "imageOneRequired": "કૃપા કરીને ઓછામાં ઓછી એક છબી અપલોડ કરો",
-    "languageChanged": "ભાષા સફળતાપૂર્વક બદલાઈ ગઈ"
+    "languageChanged": "ભાષા સફળતાપૂર્વક બદલાઈ ગઈ",
+    "bookVehicle": "વાહન બુક કરો"
   },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",
@@ -102,7 +103,17 @@
     "bookingHistory": "બુકિંગ ઇતિહાસ",
     "noBookings": "કોઈ બુકિંગ મળી નથી",
     "success": "બુકિંગ સફળ!",
-    "successMessage": "તમારી બુકિંગની પુષ્ટિ થઈ છે"
+    "successMessage": "તમારી બુકિંગની પુષ્ટિ થઈ છે",
+    "schedulePickup": "પિકઅપ શેડ્યૂલ કરો",
+    "validation": {
+      "fromRequired": "સ્થાનથી જરૂરી છે"
+    },
+    "bookNow": "હમણાં બુક કરો",
+    "selectPickupTime": "પિકઅપ સમય પસંદ કરો",
+    "truckWeight": "ટ્રક વજન",
+    "selectBookingDate": "બુકિંગ તારીખ પસંદ કરો",
+    "bookingDate": "બુકિંગ તારીખ પસંદ કરો",
+    "selectToLocation": "સ્થાન પસંદ કરો"
   },
   "vehicles": {
     "title": "વાહન નોંધણી",
@@ -136,7 +147,9 @@
     },
     "truckPhotos": "ટ્રક ફોટો",
     "notMentioned": "ઉલ્લેખ નથી",
-    "vehicleDeleted": "વાહન સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું"
+    "vehicleDeleted": "વાહન સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું",
+    "kilometer": "કિલોમીટર",
+    "estimatedPrice": "અંદાજિત કિંમત"
   },
   "post": {
     "pageTitle": "પોસ્ટ બનાવો",

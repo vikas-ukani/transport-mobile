@@ -49,7 +49,9 @@
     "profilePhoto": "Profile Photo",
     "myVehicles": "My Vechicles",
     "imageOneRequired": "Please upload at least one image",
-    "languageChanged": "Language changed successfully"
+    "languageChanged": "Language changed successfully",
+    "bookVehicle": "Book Vehicle",
+    "thankYou": "Thank You"
   },
   "login": {
     "title": "Welcome Back",
@@ -123,6 +125,16 @@
     "noBookings": "No bookings found",
     "success": "Booking Successful!",
     "successMessage": "Your booking has been confirmed",
+    "fromLocation": "From Location",
+    "selectFromLocation": "Select From Location",
+    "toLocation": "To Location",
+    "selectToLocation": "Select To Location",
+    "bookingDate": "Booking Date",
+    "selectBookingDate": "Select Booking Date",
+    "truckWeight": "Truck Weight",
+    "schedulePickup": "Schedule Pickup",
+    "selectPickupTime": "Select Pickup Time",
+    "bookNow": "Book Now",
     "validation": {
       "fromRequired": "From location is required",
       "toRequired": "To location is required",
@@ -150,6 +162,8 @@
     "loadCapacity": "Load Capacity",
     "truckHeight": "Truck Height (feet)",
     "referralCode": "Referral Code",
+    "kilometer": "Kilometer",
+    "estimatedPrice": "Estimated Price",
     "haveReferralCode": "I have a referral code",
     "submitAndPay": "Submit and Pay ₹200",
     "verificationNote": "Vehicle registration may take up to 2 days to be fully verified.",
