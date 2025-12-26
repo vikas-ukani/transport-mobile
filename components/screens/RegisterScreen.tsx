@@ -18,13 +18,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as yup from 'yup';
 import { useAuth, UserType } from '../../context/AuthContext';
-import i18n from '../../i18n/config';
+
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api.service';
 import { styles } from '../../styles/common';
 
 // OTP Input will be handled manually
 
 const RegisterScreen = () => {
+  const { t } = useTranslation();
   const { register } = useAuth();
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -175,7 +177,7 @@ const RegisterScreen = () => {
       const res = await apiService.verifyEmailOTP(email, otp);
       if (res.success) {
         setOtpVerified(true);
-        toast.success(i18n.t('register.otpVerified'));
+        toast.success(t('register.otpVerified'));
       } else {
         toast.error(res.message || 'Invalid OTP');
       }
@@ -226,21 +228,21 @@ const RegisterScreen = () => {
         >
           <Ionicons name='arrow-back' size={24} color='#1F2937' />
           <Text className='mb-2 text-3xl font-bold text-gray-900'>
-            {i18n.t('register.title')}
+            {t('register.title')}
           </Text>
         </TouchableOpacity>
 
-        <Text className='text-gray-600'>{i18n.t('register.subtitle')}</Text>
+        <Text className='text-gray-600'>{t('register.subtitle')}</Text>
         <View className='flex-row items-center my-2'>
-          <Text style={styles.signUpText}>{i18n.t('common.back_to')} </Text>
+          <Text style={styles.signUpText}>{t('common.back_to')} </Text>
           <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-            <Text style={styles.signUpLink}>{i18n.t('common.login')}</Text>
+            <Text style={styles.signUpLink}>{t('common.login')}</Text>
           </TouchableOpacity>
         </View>
         <ScrollView showsVerticalScrollIndicator={false}>
           <View className='mt-4 mb-4'>
             <Text className='mb-2 text-sm font-medium text-gray-700'>
-              {i18n.t('register.userType')}
+              {t('register.userType')}
             </Text>
             <View className='flex-row gap-4'>
               <TouchableOpacity
@@ -260,7 +262,7 @@ const RegisterScreen = () => {
                       : 'text-gray-600'
                   }`}
                 >
-                  {i18n.t('register.customer')}
+                  {t('register.customer')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -279,7 +281,7 @@ const RegisterScreen = () => {
                     userType === 'driver' ? 'text-purple-600' : 'text-gray-600'
                   }`}
                 >
-                  {i18n.t('register.driver')}
+                  {t('register.driver')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -287,7 +289,7 @@ const RegisterScreen = () => {
 
           <View className='mb-4'>
             <Text className='mb-2 text-sm font-medium text-gray-700'>
-              {i18n.t('common.name')}
+              {t('common.name')}
             </Text>
             <Controller
               control={control}
@@ -295,7 +297,7 @@ const RegisterScreen = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   className='px-4 py-3 text-base rounded-lg border border-gray-300'
-                  placeholder={i18n.t('common.name')}
+                  placeholder={t('common.name')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -311,7 +313,7 @@ const RegisterScreen = () => {
 
           <View className=''>
             <Text className='text-sm font-medium text-gray-700'>
-              {i18n.t('common.email')}
+              {t('common.email')}
             </Text>
             <Controller
               control={control}
@@ -319,7 +321,7 @@ const RegisterScreen = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   className='px-4 py-3 text-base rounded-lg border border-gray-300'
-                  placeholder={i18n.t('common.email')}
+                  placeholder={t('common.email')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -338,7 +340,7 @@ const RegisterScreen = () => {
 
           {otpVerified ? (
             <Text className='mb-2 text-green-600 text-start'>
-              ✓ {i18n.t('register.otpVerified')}
+              ✓ {t('register.otpVerified')}
             </Text>
           ) : (
             <View className='flex-row gap-2 justify-start items-start mt-2 mb-4 w-full'>
@@ -358,7 +360,7 @@ const RegisterScreen = () => {
                       onPress={verifyOTP}
                     >
                       <Text className='font-semibold text-center text-white'>
-                        {i18n.t('register.verify')}
+                        {t('register.verify')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -370,8 +372,8 @@ const RegisterScreen = () => {
                 >
                   <Text className='font-semibold text-center text-white'>
                     {loadingOTP && watch('email')
-                      ? i18n.t('register.otpSending')
-                      : i18n.t('register.otpVerification')}
+                      ? t('register.otpSending')
+                      : t('register.otpVerification')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -380,7 +382,7 @@ const RegisterScreen = () => {
 
           <View className='mb-4'>
             <Text className='mb-2 text-sm font-medium text-gray-700'>
-              {i18n.t('common.mobile')}
+              {t('common.mobile')}
             </Text>
             <Controller
               control={control}
@@ -388,7 +390,7 @@ const RegisterScreen = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   className='px-4 py-3 text-base rounded-lg border border-gray-300'
-                  placeholder={i18n.t('common.mobile')}
+                  placeholder={t('common.mobile')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -405,7 +407,7 @@ const RegisterScreen = () => {
 
           <View className='mb-4'>
             <Text className='mb-2 text-sm font-medium text-gray-700'>
-              {i18n.t('common.password')}
+              {t('common.password')}
             </Text>
             <Controller
               control={control}
@@ -413,7 +415,7 @@ const RegisterScreen = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   className='px-4 py-3 text-base rounded-lg border border-gray-300'
-                  placeholder={i18n.t('common.password')}
+                  placeholder={t('common.password')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -430,7 +432,7 @@ const RegisterScreen = () => {
 
           <View className='mb-4'>
             <Text className='mb-2 text-sm font-medium text-gray-700'>
-              {i18n.t('common.confirmPassword')}
+              {t('common.confirmPassword')}
             </Text>
             <Controller
               control={control}
@@ -438,7 +440,7 @@ const RegisterScreen = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   className='px-4 py-3 text-base rounded-lg border border-gray-300'
-                  placeholder={i18n.t('common.confirmPassword')}
+                  placeholder={t('common.confirmPassword')}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -455,7 +457,7 @@ const RegisterScreen = () => {
 
           <View className='mb-4'>
             <Text className='mb-2 text-sm font-medium text-gray-700'>
-              {i18n.t('common.profilePhoto')}
+              {t('common.profilePhoto')}
             </Text>
             <View className='flex-row gap-2 justify-evenly w-11/12'>
               <TouchableOpacity
@@ -464,7 +466,7 @@ const RegisterScreen = () => {
               >
                 <Ionicons name='camera-outline' size={20} />
                 <Text className='text-center text-gray-700'>
-                  {i18n.t('register.takePhoto')}
+                  {t('register.takePhoto')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -473,7 +475,7 @@ const RegisterScreen = () => {
               >
                 <Ionicons name='image-outline' size={20} />
                 <Text className='text-center text-gray-700'>
-                  {i18n.t('register.selectPhoto')}
+                  {t('register.selectPhoto')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -499,7 +501,7 @@ const RegisterScreen = () => {
               <ActivityIndicator color='#fff' />
             ) : (
               <Text className='text-lg font-semibold text-center text-white'>
-                {i18n.t('common.register')}
+                {t('common.register')}
               </Text>
             )}
           </TouchableOpacity>
@@ -514,10 +516,10 @@ const RegisterScreen = () => {
           {/* Sign Up Link */}
           <View style={styles.signUpContainer} className='!mb-6'>
             <Text style={styles.signUpText}>
-              {i18n.t('login.haveAccount')}{' '}
+              {t('login.haveAccount')}{' '}
             </Text>
             <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-              <Text style={styles.signUpLink}>{i18n.t('common.login')}</Text>
+              <Text style={styles.signUpLink}>{t('common.login')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

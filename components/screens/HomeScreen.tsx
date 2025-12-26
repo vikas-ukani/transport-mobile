@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -13,7 +14,6 @@ import { RefreshControl } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import 'setimmediate';
 import { User } from '../../context/AuthContext';
-import i18n from '../../i18n/config';
 import apiService from '../../services/api.service';
 import socketService from '../../services/socket';
 import HomeHeader from '../common/HomeHeader';
@@ -22,6 +22,7 @@ import PostItems from '../common/PostItem';
 export interface Post {
   id: string;
   title: string;
+  content: string;
   images: string[];
   likes: string[];
   userId: string;
@@ -31,6 +32,7 @@ export interface Post {
 }
 
 const HomeScreen = () => {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
@@ -93,7 +95,6 @@ const HomeScreen = () => {
 
   // SQL query to insert videos with YouTube URL, title, and thumbnail:
 
-
   const renderVideoItem = ({ item }: { item: any }) => (
     <TouchableOpacity className='mr-4' activeOpacity={0.7}>
       <View className='overflow-hidden justify-center items-center w-20 h-20 bg-gradient-to-br from-red-300 to-red-900 rounded-full shadow-lg'>
@@ -109,7 +110,7 @@ const HomeScreen = () => {
   return (
     <SafeAreaView className='flex-1 bg-gray-50'>
       {/* Header */}
-<HomeHeader />
+      <HomeHeader />
 
       <ScrollView
         className='flex-1'
@@ -123,7 +124,7 @@ const HomeScreen = () => {
           <View className='px-2 py-6 my-4 bg-white shadow-sm'>
             <View className='flex-row justify-between items-center pl-4 mb-5'>
               <Text className='text-2xl font-bold text-gray-900'>
-                {i18n.t('home.userGuide')}
+                {t('home.userGuide')}
               </Text>
               <Ionicons
                 name='play-circle'
@@ -146,7 +147,7 @@ const HomeScreen = () => {
         <View className='px-5 pb-6 my-4'>
           <View className='flex-row justify-between items-center mb-5'>
             <Text className='text-2xl font-bold text-gray-900'>
-              {i18n.t('home.recentPosts')}
+              {t('home.recentPosts')}
             </Text>
             <TouchableOpacity
               activeOpacity={0.7}
@@ -188,7 +189,7 @@ const HomeScreen = () => {
                 color='#D1D5DB'
               />
               <Text className='mt-4 text-base font-medium text-gray-500'>
-                {i18n.t('home.noPosts')}
+                {t('home.noPosts')}
               </Text>
             </View>
           )}

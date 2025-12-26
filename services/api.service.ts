@@ -165,26 +165,15 @@ class ApiService {
     try {
       const response = await this.client.post('/bookings', bookingData);
       return response.data;
-    } catch (e: any) {
-      console.log('Booking Error', e.message);
-      // Mock booking data (fallback in case POST fails)
-      return {
-        id: Date.now().toString(),
-        fromLocation: bookingData.fromLocation?.address || 'Mock From Location',
-        toLocation: bookingData.toLocation?.address || 'Mock To Location',
-        materialType: bookingData.materialType || 'Mock Material',
-        truckType: bookingData.truckType || 'Mock Truck',
-        materialWeight: bookingData.materialWeight || '1.0',
-        truckLength: bookingData.truckLength || '10',
-        truckHeight: bookingData.truckHeight || '5',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      };
+    } catch (err: any) {
+      throw new Error(err.response?.data || err.message);
     }
   }
 
-  async getBookings() {
-    const response = await this.client.get('/bookings');
+  async getMyBookings({ page, limit }: { page: number; limit: number }) {
+    const response = await this.client.get(
+      `/bookings?page=${page}&limit=${limit}`
+    );
     return response.data;
   }
 
@@ -196,14 +185,12 @@ class ApiService {
   // Vehicle endpoints
   async registerVehicle(vehicleData: any) {
     const response = await this.client.post('/vehicles', vehicleData);
-    console.log('response.data', response.data);
     return response.data;
   }
 
   // Vehicle endpoints
   async updateRegisterVehicle(vehicleData: any, id: string) {
     const response = await this.client.put(`/vehicle/${id}`, vehicleData);
-    console.log('response.data', response.data);
     return response.data;
   }
 
@@ -293,9 +280,21 @@ class ApiService {
   }
 
   // Notification endpoints
-  async getNotifications() {
-    const response = await this.client.get('/notifications');
+  async getNotifications(page = 1, limit = 20) {
+    // page and limit can be customized as needed
+    const response = await this.client.get('/notifications', {
+      params: { page, limit }
+    });
     return response.data;
+  }
+
+  async markAllNotificationsRead() {
+    try {
+      const response = await this.client.patch('/notifications/read-all');
+      return response.data;
+    } catch (err: any) {
+      console.log('got Catch markAllNotificationsRead://', err.response?.data || err.message);
+    }
   }
 
   async markNotificationRead(notificationId: string) {

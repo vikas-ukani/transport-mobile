@@ -1,6 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   Modal,
@@ -12,7 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import i18n from '../../i18n/config';
+import ConfirmPopup from '../common/ConfirmPopup';
+
 
 interface LogoutProps {
   visible: boolean;
@@ -62,6 +64,7 @@ const LogoutModal = ({ visible, onCancel, onConfirm }: LogoutProps) => {
 };
 
 const ProfileScreen = () => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
 
@@ -73,10 +76,13 @@ const ProfileScreen = () => {
     <SafeAreaView className='flex-1 bg-gray-50'>
       <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
-        <LogoutModal
-          visible={openLogoutModal}
+        <ConfirmPopup
+          loading={false}
+          show={openLogoutModal}
           onCancel={() => setOpenLogoutModal(false)}
           onConfirm={handleLogout}
+          title='Logout?'
+          subTitle='Are you sure you want to logout?'
         />
         <View className='flex-row gap-6 justify-start items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
           <View className='flex-row justify-center items-center'>
@@ -103,7 +109,13 @@ const ProfileScreen = () => {
             </Text>
             <View className='!bg-primary/10 px-6 py-2.5 rounded-full border !border-primary/80'>
               <Text className='text-sm font-bold text-primary'>
-                {i18n.t(`common.${user?.type || 'customer'}`)}
+                {/* i18n.t should be fixed if imported */}
+                {user?.type === 'customer' && t('common.customer')}
+                {user?.type === 'driver' && t('common.driver')}
+                {/* {user?.type == 'garage' && t('common.garage')} */}
+                {/* {typeof i18n !== 'undefined'
+                  ? i18n.t(`common.${user?.type || 'customer'}`)
+                  : user?.type || 'customer'} */}
               </Text>
             </View>
           </View>
@@ -125,7 +137,8 @@ const ProfileScreen = () => {
                 />
               </View>
               <Text className='text-base font-semibold text-gray-900'>
-                {i18n.t('common.settings')}
+                {/* Fix: Use curly braces for the value */}
+                {t('common.settings')}
               </Text>
             </View>
             <Ionicons name='chevron-forward' size={22} color='#9CA3AF' />
@@ -144,7 +157,7 @@ const ProfileScreen = () => {
                 />
               </View>
               <Text className='text-base font-semibold text-gray-900'>
-                {i18n.t('common.security')}
+                {t('common.security')}
               </Text>
             </View>
             <Ionicons name='chevron-forward' size={22} color='#9CA3AF' />
@@ -159,7 +172,7 @@ const ProfileScreen = () => {
                 <Ionicons name='language-outline' size={22} color='#9333EA' />
               </View>
               <Text className='text-base font-semibold text-gray-900'>
-                {i18n.t('common.language')}
+                {t('common.language')}
               </Text>
             </View>
             <Ionicons name='chevron-forward' size={22} color='#9CA3AF' />
@@ -175,7 +188,7 @@ const ProfileScreen = () => {
                 <Ionicons name='notifications' size={22} color='#9333EA' />
               </View>
               <Text className='text-base font-semibold text-gray-900'>
-                {i18n.t('common.notifications')}
+                {t('common.notifications')}
               </Text>
             </View>
             <Ionicons name='chevron-forward' size={22} color='#9CA3AF' />
@@ -193,7 +206,7 @@ const ProfileScreen = () => {
                 <Ionicons name='log-out-outline' size={22} color='#EF4444' />
               </View>
               <Text className='text-base font-semibold text-red-600'>
-                {i18n.t('common.logout')}
+                {t('common.logout')}
               </Text>
             </View>
             <Ionicons name='chevron-forward' size={22} color='#9CA3AF' />

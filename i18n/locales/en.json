@@ -163,6 +163,7 @@
     "truckHeight": "Truck Height (feet)",
     "referralCode": "Referral Code",
     "kilometer": "Kilometer",
+    "estimatedKilometer": "Estimated Kilometer",
     "estimatedPrice": "Estimated Price",
     "haveReferralCode": "I have a referral code",
     "submitAndPay": "Submit and Pay ₹200",

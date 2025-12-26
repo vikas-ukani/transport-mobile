@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -21,16 +22,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as yup from 'yup';
+import { VEHICLE_RC_PATTERN_VALIDATION } from '../../constants/vehicle';
 import { useAuth } from '../../context/AuthContext';
-import i18n from '../../i18n/config';
 import apiService, { getBaseUrl } from '../../services/api.service';
 
 const schema = yup.object().shape({
   driverName: yup.string().required('Driver Name is required'),
   mobileNumber: yup.string().required('Driver mobile is required'),
-  rcNumber: yup.string().required('RC Book number is required'),
+  rcNumber: yup
+    .string()
+    .required('RC Book number is required')
+    .matches(
+      VEHICLE_RC_PATTERN_VALIDATION,
+      'Invalid RC number format. Example: MH12AB1234'
+    ),
   truckType: yup.string().required('Truck type is required'),
   bodyType: yup.string().required('Body type is required'),
   truckLength: yup.string().required('Truck length is required'),
@@ -38,22 +46,9 @@ const schema = yup.object().shape({
   truckHeight: yup.string().required('Truck height is required'),
 });
 
-interface Vehicle {
-  id: string;
-  rcNumber: string;
-  truckType: string;
-  bodyType: string;
-  truckLength: string;
-  loadCapacity: string;
-  truckHeight: string;
-  rcPhoto: string;
-  travelled: string;
-  status: 'verified' | 'pending';
-  createdAt: string;
-}
-
 const VehicleRegistrationScreen = () => {
   const { id } = useGlobalSearchParams();
+  const { t } = useTranslation();
 
   const { user } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -70,6 +65,7 @@ const VehicleRegistrationScreen = () => {
     handleSubmit,
     reset,
     getValues,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -149,7 +145,7 @@ const VehicleRegistrationScreen = () => {
         allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: true,
-        selectionLimit: 4,
+        selectionLimit: 2,
       });
 
       if (!result.canceled && result.assets.length > 0) {
@@ -189,6 +185,35 @@ const VehicleRegistrationScreen = () => {
     }
   };
 
+  const selectPhoto = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        toast.error('Permission to access the media library is required.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        allowsMultipleSelection: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setTruckPhoto([
+          ...truckPhoto,
+          ...result.assets.map((asset) => asset.uri),
+        ]);
+      }
+    } catch (e) {
+      console.log('error', e);
+      toast.error('Failed to upload photo');
+    }
+  };
+
   const generateLengthOptions = () => {
     const options = [];
     for (let i = 5; i <= 300; i += 1) {
@@ -210,6 +235,9 @@ const VehicleRegistrationScreen = () => {
 
   const removeTruckPhotos = (index: number) => {
     setTruckPhoto(truckPhoto.filter((_, i) => i !== index));
+    if (truckPhotoIds && truckPhotoIds[index]) {
+      setTruckPhotoIds(truckPhotoIds.filter((_, i) => i !== index));
+    }
   };
 
   const generateHeightOptions = () => {
@@ -221,8 +249,6 @@ const VehicleRegistrationScreen = () => {
   };
 
   const onSubmit = async (data: any) => {
- 
-
     try {
       setLoading(true);
 
@@ -338,474 +364,499 @@ const VehicleRegistrationScreen = () => {
 
   return (
     <SafeAreaView className='flex-1 bg-gray-50'>
-      <View className='flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className='flex-row gap-4 justify-start items-center p-2 -ml-2'
-          activeOpacity={0.7}
-        >
-          <Ionicons name='arrow-back' size={24} color='#1F2937' />
-          <Text className='text-xl font-bold text-gray-900'>
-            {i18n.t('vehicles.addVehicle')}
-          </Text>
-        </TouchableOpacity>
-        <View style={{ width: 40 }} />
-      </View>
-      <View className='flex-1 bg-gray-50'>
-        <ScrollView
-          className='flex-1 px-5 py-6'
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Driver Info Cards */}
-          <View className='mb-6'>
-            <Text className='mb-2 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.driverName')}
+      <KeyboardAwareScrollView
+        className='flex-1 bg-white'
+        contentContainerStyle={{ flexGrow: 1 }}
+        enableOnAndroid
+        extraScrollHeight={20}
+        keyboardShouldPersistTaps='handled'
+      >
+        <View className='flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className='flex-row gap-4 justify-start items-center p-2 -ml-2'
+            activeOpacity={0.7}
+          >
+            <Ionicons name='arrow-back' size={24} color='#1F2937' />
+            <Text className='text-xl font-bold text-gray-900'>
+              {t('vehicles.addVehicle')}
             </Text>
-            <Controller
-              control={control}
-              name='driverName'
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
-                  placeholder={i18n.t('vehicles.driverName')}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholderTextColor='#9CA3AF'
-                />
-              )}
-            />
-          </View>
-
-          <View className='mb-6'>
-            <Text className='mb-2 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.mobileNumber')}
-            </Text>
-            <Controller
-              control={control}
-              name='mobileNumber'
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  keyboardType='phone-pad'
-                  className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
-                  placeholder={i18n.t('vehicles.mobileNumber')}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholderTextColor='#9CA3AF'
-                />
-              )}
-            />
-          </View>
-
-          {/* RC Book */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.rcNumber')}
-            </Text>
-            <Controller
-              control={control}
-              name='rcNumber'
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
-                  placeholder={i18n.t('vehicles.rcNumber')}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholderTextColor='#9CA3AF'
-                />
-              )}
-            />
-            {errors.rcNumber && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-danger'>
-                {errors.rcNumber.message}
+          </TouchableOpacity>
+          <View style={{ width: 40 }} />
+        </View>
+        <View className='flex-1 bg-gray-50'>
+          <ScrollView
+            className='flex-1 px-5 py-6'
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Driver Info Cards */}
+            <View className='mb-6'>
+              <Text className='mb-2 text-sm font-bold text-gray-700'>
+                {t('vehicles.driverName')}
               </Text>
-            )}
-          </View>
-
-          {/* RC Photo */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.rcNumberPhoto')}
-            </Text>
-            <TouchableOpacity
-              className='py-4 rounded-xl border-2 bg-primary/10 border-primary/50'
-              onPress={takeRCPhoto}
-              activeOpacity={0.8}
-            >
-              <View className='flex-row justify-center items-center'>
-                <Ionicons
-                  name='camera-outline'
-                  size={28}
-                  className='!text-primary'
-                />
-                <Text className='ml-2 font-extrabold text-center text-primary'>
-                  {i18n.t('register.takePhoto')}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {rcPhoto && (
-              <View className='flex-row flex-wrap mt-4'>
-                <View className='relative mr-3 mb-3'>
-                  <Image
-                    source={{ uri: rcPhoto }}
-                    className='w-28 h-28 rounded-xl'
+              <Controller
+                control={control}
+                name='driverName'
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
+                    placeholder={t('vehicles.driverName')}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholderTextColor='#9CA3AF'
                   />
-                </View>
-              </View>
-            )}
+                )}
+              />
+            </View>
 
-            {!rcPhoto && (
-              <Text className='mt-2 ml-1 text-sm font-medium !text-danger'>
-                {i18n.t('vehicles.validation.rcPhotoRequired')}
+            <View className='mb-6'>
+              <Text className='mb-2 text-sm font-bold text-gray-700'>
+                {t('vehicles.mobileNumber')}
               </Text>
-            )}
-          </View>
+              <Controller
+                control={control}
+                name='mobileNumber'
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    keyboardType='phone-pad'
+                    className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
+                    placeholder={t('vehicles.mobileNumber')}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholderTextColor='#9CA3AF'
+                  />
+                )}
+              />
+            </View>
 
-          {/* RC Photo */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.truckPhotos')}
-            </Text>
-            <TouchableOpacity
-              className='py-4 rounded-xl border-2 bg-primary/10 border-primary/50'
-              onPress={takeTruckPhoto}
-              activeOpacity={0.8}
-            >
-              <View className='flex-row justify-center items-center'>
-                <Ionicons
-                  name='camera-outline'
-                  size={28}
-                  className='!text-primary'
-                />
-                <Text className='ml-2 font-extrabold text-center text-primary'>
-                  {i18n.t('register.takePhoto')}
+            {/* RC Book */}
+            <View className='mb-6'>
+              <View className='flex-row gap-2 items-center'>
+                <Text className='mb-3 text-sm font-bold text-gray-700'>
+                  {t('vehicles.rcNumber')}{' '}
+                  <Text className='text-danger'>*</Text>
                 </Text>
+                {errors.rcNumber && (
+                  <Text className='text-sm font-medium text-danger'>
+                    {errors.rcNumber.message}
+                  </Text>
+                )}
               </View>
-            </TouchableOpacity>
+              <Controller
+                control={control}
+                name='rcNumber'
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
+                    placeholder={t('vehicles.rcNumber')}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholderTextColor='#9CA3AF'
+                    autoCapitalize='characters'
+                  />
+                )}
+              />
+            </View>
 
-            {truckPhoto.length > 0 && (
-              <View className='flex-row flex-wrap mt-4'>
-                {truckPhoto.map((uri, index) => (
-                  <View key={index} className='relative mr-3 mb-3'>
-                    <Image source={{ uri }} className='w-28 h-28 rounded-xl' />
-                    {/* <TouchableOpacity
-                      className='absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-lg'
-                      onPress={() => removeTruckPhotos(index)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name='close' size={18} color='#fff' />
-                    </TouchableOpacity> */}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {(!truckPhoto || truckPhoto.length === 0) && (
-              <Text className='mt-2 ml-1 text-sm font-medium !text-danger'>
-                {i18n.t('vehicles.validation.truckPhotoRequired')}
+            {/* RC Photo */}
+            <View className='mb-6'>
+              <Text className='mb-3 text-sm font-bold text-gray-700'>
+                {t('vehicles.rcNumberPhoto')}
               </Text>
-            )}
-          </View>
+              <TouchableOpacity
+                className='py-4 rounded-xl border-2 bg-primary/10 border-primary/50'
+                onPress={takeRCPhoto}
+                activeOpacity={0.8}
+              >
+                <View className='flex-row justify-center items-center'>
+                  <Ionicons
+                    name='camera-outline'
+                    size={28}
+                    className='!text-primary'
+                  />
+                  <Text className='ml-2 font-extrabold text-center text-primary'>
+                    {t('register.takePhoto')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-          {/* Truck Type */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.truckType')}
-            </Text>
-            <Controller
-              control={control}
-              name='truckType'
-              render={({ field: { onChange, value } }) => (
-                <View className='!grid  overflow-hidden grid-cols-2 !grid-flow-row gap-2 w-full'>
-                  <TouchableOpacity
-                    key={'pickup'}
-                    className={`flex-row items-center justify-center overflow-hidden shrink !rounded-md py-2 !min-w-10 w-auto gap-2 ${
-                      value === 'pickup' ? ' border !border-primary' : 'border'
-                    }`}
-                    onPress={() => onChange('pickup')}
-                  >
-                    <FontAwesome5
-                      name='truck-pickup'
-                      size={22}
-                      className={
-                        value === 'pickup' ? '!text-primary' : 'text-black'
-                      }
+              {rcPhoto && (
+                <View className='flex-row flex-wrap mt-4'>
+                  <View className='relative mr-3 mb-3'>
+                    <Image
+                      source={{ uri: rcPhoto }}
+                      className='w-28 h-28 rounded-xl'
                     />
-                    <Text
-                      className={`duration-300 text-center text-sm font-medium ${
-                        value === 'pickup' ? '!text-primary' : 'text-black'
-                      }`}
-                    >
-                      {i18n.t('vehicles.pickupSmall')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    key={'truck'}
-                    className={`flex-row items-center justify-center overflow-hidden shrink !rounded-md py-2 !min-w-10 w-auto gap-2 ${
-                      value === 'truck' ? ' border !border-primary' : 'border'
-                    }`}
-                    onPress={() => onChange('truck')}
-                  >
-                    <FontAwesome5
-                      name='truck-moving'
-                      size={24}
-                      className={
-                        value === 'truck' ? '!text-primary' : 'text-black'
-                      }
-                    />
-                    <Text
-                      className={`duration-300 text-center text-sm font-medium ${
-                        value === 'truck' ? '!text-primary' : 'text-black'
-                      }`}
-                    >
-                      {i18n.t('vehicles.truck')}
-                    </Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
               )}
-            />
-            {errors.truckType && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red'>
-                {errors.truckType.message}
-              </Text>
-            )}
-          </View>
+            </View>
 
-          {/* Body Type */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.bodyType')}
-            </Text>
-            <Controller
-              control={control}
-              name='bodyType'
-              render={({ field: { onChange, value } }) => (
-                <View className='overflow-hidden'>
-                  <View className='grid overflow-hidden grid-cols-2 grid-flow-row gap-2 w-full'>
+            {/* RC Photo */}
+            <View className='mb-6'>
+              <Text className='mb-3 text-sm font-bold text-gray-700'>
+                {t('vehicles.truckPhotos')}
+              </Text>
+              <View className='flex-row gap-2 justify-evenly w-11/12'>
+                <TouchableOpacity
+                  className='flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50'
+                  onPress={takeTruckPhoto}
+                >
+                  <Ionicons name='camera-outline' size={20} />
+                  <Text className='text-center text-gray-700'>
+                    {t('register.takePhoto')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className='flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50'
+                  onPress={selectPhoto}
+                >
+                  <Ionicons name='image-outline' size={20} />
+                  <Text className='text-center text-gray-700'>
+                    {t('register.selectPhoto')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {truckPhoto.length > 0 && (
+                <View className='flex-row flex-wrap mt-4'>
+                  {truckPhoto.map((uri, index) => (
+                    <View key={index} className='relative mr-3 mb-3'>
+                      <Image
+                        source={{ uri }}
+                        className='w-28 h-28 rounded-xl'
+                      />
+                      <TouchableOpacity
+                        className='absolute -top-2 -right-2 p-1 bg-red-500 rounded-full shadow-lg'
+                        onPress={() => removeTruckPhotos(index)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name='close' size={18} color='#fff' />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Truck Type */}
+            <View className='mb-6'>
+              <Text className='mb-2 text-lg font-bold text-gray-800'>
+                {t('booking.truckType')}
+              </Text>
+              <Controller
+                control={control}
+                name='truckType'
+                render={({ field: { onChange, value } }) => (
+                  <View className='flex-row gap-3'>
                     <TouchableOpacity
-                      key={'open'}
-                      className={`flex-row items-center justify-center overflow-hidden shrink !rounded-md py-2 !min-w-10 w-auto gap-2 ${
-                        value === 'open' ? ' border !border-primary' : 'border'
+                      className={`flex-1 flex-row items-center px-4 py-4 rounded-lg border ${
+                        getValues('truckType') === 'pickup'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-gray-200 bg-white'
                       }`}
-                      onPress={() => onChange('open')}
+                      onPress={() => setValue('truckType', 'pickup')}
+                    >
+                      <FontAwesome5
+                        name='truck-pickup'
+                        size={20}
+                        color={
+                          getValues('truckType') === 'pickup'
+                            ? '#7C3AED'
+                            : '#1F2937'
+                        }
+                      />
+                      <Text
+                        className={`ml-2 text-base font-semibold ${
+                          getValues('truckType') === 'pickup'
+                            ? 'text-primary'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        {t('vehicles.pickupSmall')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className={`flex-1 flex-row items-center px-4 py-4 rounded-lg border ${
+                        getValues('truckType') === 'truck'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                      onPress={() => setValue('truckType', 'truck')}
+                    >
+                      <FontAwesome5
+                        name='truck-moving'
+                        size={22}
+                        color={
+                          getValues('truckType') === 'truck'
+                            ? '#7C3AED'
+                            : '#1F2937'
+                        }
+                      />
+                      <Text
+                        className={`ml-2 text-base font-semibold ${
+                          getValues('truckType') === 'truck'
+                            ? 'text-primary'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        {t('vehicles.truck')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+              {errors.truckType && (
+                <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
+                  {errors.truckType.message}
+                </Text>
+              )}
+            </View>
+            {/* Body Type */}
+            <View className='mb-6'>
+              <Text className='mb-3 text-sm font-bold text-gray-700'>
+                {t('vehicles.bodyType')}
+              </Text>
+              <Controller
+                control={control}
+                name='bodyType'
+                render={({ field: { onChange, value } }) => (
+                  <View className='flex-row gap-3'>
+                    <TouchableOpacity
+                      className={`flex-1 flex-row items-center px-4 py-3 gap-2 rounded-lg border ${
+                        getValues('bodyType') === 'open'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                      onPress={() => setValue('bodyType', 'open')}
                     >
                       <MaterialCommunityIcons
                         name='truck-flatbed'
                         size={28}
                         className={
-                          value === 'open' ? '!text-primary' : 'text-black'
+                          getValues('bodyType') === 'open'
+                            ? '!text-primary'
+                            : 'text-black'
                         }
                       />
                       <Text
                         className={`duration-300 text-center text-sm font-medium ${
-                          value === 'open' ? '!text-primary' : 'text-black'
+                          getValues('bodyType') === 'open'
+                            ? '!text-primary'
+                            : 'text-black'
                         }`}
                       >
-                        {i18n.t('vehicles.open')}
+                        {t('vehicles.open')}
                       </Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity
-                      key={'container'}
-                      className={`flex-row items-center justify-center overflow-hidden shrink !rounded-md py-2 !min-w-10 w-auto gap-2 ${
-                        value === 'container'
-                          ? ' border !border-primary'
-                          : 'border'
+                      className={`flex-1 flex-row items-center gap-2 px-4 py-3 rounded-lg border ${
+                        getValues('bodyType') === 'container'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-gray-200 bg-white'
                       }`}
-                      onPress={() => onChange('container')}
+                      onPress={() => setValue('bodyType', 'container')}
                     >
                       <MaterialCommunityIcons
                         name='truck-cargo-container'
                         size={28}
                         className={
-                          value === 'container' ? '!text-primary' : 'text-black'
+                          getValues('bodyType') === 'container'
+                            ? '!text-primary'
+                            : 'text-black'
                         }
                       />
                       <Text
                         className={`duration-300 text-center text-sm font-medium ${
-                          value === 'container' ? '!text-primary' : 'text-black'
+                          getValues('bodyType') === 'container'
+                            ? '!text-primary'
+                            : 'text-black'
                         }`}
                       >
-                        {i18n.t('vehicles.container')}
+                        {t('vehicles.container')}
                       </Text>
                     </TouchableOpacity>
                   </View>
-                </View>
-              )}
-            />
-            {errors.bodyType && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red'>
-                {errors.bodyType.message}
-              </Text>
-            )}
-          </View>
-
-          {/* Truck Length */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.truckLength')}
-            </Text>
-            <Controller
-              control={control}
-              name='truckLength'
-              render={({ field: { onChange, value } }) => (
-                <View className='overflow-hidden bg-white rounded-xl border-2 border-gray-200'>
-                  <Picker
-                    selectedValue={value}
-                    onValueChange={onChange}
-                    style={{ height: 50 }}
-                  >
-                    {generateLengthOptions().map((opt) => (
-                      <Picker.Item
-                        key={opt.value}
-                        label={opt.label}
-                        value={opt.value}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              )}
-            />
-            {errors.truckLength && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-                {errors.truckLength.message}
-              </Text>
-            )}
-          </View>
-
-          {/* Load Capacity */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.loadCapacity')}
-            </Text>
-            <Controller
-              control={control}
-              name='loadCapacity'
-              render={({ field: { onChange, value } }) => (
-                <View className='overflow-hidden bg-white rounded-xl border-2 border-gray-200'>
-                  <Picker
-                    selectedValue={value}
-                    onValueChange={onChange}
-                    style={{ height: 50 }}
-                  >
-                    {generateCapacityOptions().map((opt) => (
-                      <Picker.Item
-                        key={opt.value}
-                        label={opt.label}
-                        value={opt.value}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              )}
-            />
-            {errors.loadCapacity && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-                {errors.loadCapacity.message}
-              </Text>
-            )}
-          </View>
-
-          {/* Truck Height */}
-          <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {i18n.t('vehicles.truckHeight')}
-            </Text>
-            <Controller
-              control={control}
-              name='truckHeight'
-              render={({ field: { onChange, value } }) => (
-                <View className='overflow-hidden bg-white rounded-xl border-2 border-gray-200'>
-                  <Picker
-                    selectedValue={value}
-                    onValueChange={onChange}
-                    style={{ height: 50 }}
-                  >
-                    {generateHeightOptions().map((opt) => (
-                      <Picker.Item
-                        key={opt.value}
-                        label={opt.label}
-                        value={opt.value}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              )}
-            />
-            {errors.truckHeight && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-                {errors.truckHeight.message}
-              </Text>
-            )}
-          </View>
-
-          {/* Referral Code */}
-          <View className='mb-4'>
-            <TouchableOpacity
-              className='flex-row items-center'
-              onPress={() => setReferralCodeVisible(!referralCodeVisible)}
-              activeOpacity={0.7}
-            >
-              <View
-                className={`w-6 h-6 border-2 rounded mr-3 items-center justify-center ${
-                  referralCodeVisible
-                    ? 'bg-primary border-primary'
-                    : 'border-gray-300'
-                }`}
-              >
-                {referralCodeVisible && (
-                  <Ionicons name='checkmark' size={16} color='#fff' />
                 )}
-              </View>
-              <Text className='text-base font-semibold text-gray-700'>
-                {i18n.t('vehicles.haveReferralCode')}
-              </Text>
-            </TouchableOpacity>
-            {referralCodeVisible && (
-              <TextInput
-                className='px-5 py-4 mt-3 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
-                placeholder={i18n.t('vehicles.referralCode')}
-                value={referralCode}
-                onChangeText={setReferralCode}
-                placeholderTextColor='#9CA3AF'
               />
-            )}
-          </View>
 
-          <TouchableOpacity
-            className='flex-row justify-center items-center py-6 mb-4 rounded-xl shadow-lg bg-primary'
-            onPress={handleSubmit(onSubmit)}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color='#fff' size='small' />
-            ) : (
-              <>
-                <Ionicons name='card-outline' size={22} color='#FFFFFF' />
-                <Text className='ml-2 text-lg font-bold text-center text-white'>
-                  {i18n.t('vehicles.submitAndPay')}
+              {errors.bodyType && (
+                <Text className='mt-2 ml-1 text-sm font-medium text-red'>
+                  {errors.bodyType.message}
                 </Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View className='p-4 mb-6 bg-yellow-50 rounded-xl border border-yellow-200'>
-            <View className='flex-row items-start'>
-              <Ionicons
-                name='information-circle-outline'
-                size={20}
-                color='#F59E0B'
-              />
-              <Text className='ml-2 text-sm font-medium leading-5 text-yellow-800'>
-                {i18n.t('vehicles.verificationNote')}
-              </Text>
+              )}
             </View>
-          </View>
-        </ScrollView>
-      </View>
+
+            {/* Truck Length */}
+            <View className='mb-6'>
+              <Text className='mb-3 text-sm font-bold text-gray-700'>
+                {t('vehicles.truckLength')}
+              </Text>
+              <Controller
+                control={control}
+                name='truckLength'
+                render={({ field: { onChange, value } }) => (
+                  <View className='overflow-hidden bg-white rounded-xl border-2 border-gray-200'>
+                    <Picker
+                      selectedValue={value}
+                      onValueChange={onChange}
+                      style={{ height: 50 }}
+                    >
+                      {generateLengthOptions().map((opt) => (
+                        <Picker.Item
+                          key={opt.value}
+                          label={opt.label}
+                          value={opt.value}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
+              />
+              {errors.truckLength && (
+                <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
+                  {errors.truckLength.message}
+                </Text>
+              )}
+            </View>
+
+            {/* Load Capacity */}
+            <View className='mb-6'>
+              <Text className='mb-3 text-sm font-bold text-gray-700'>
+                {t('vehicles.loadCapacity')}
+              </Text>
+              <Controller
+                control={control}
+                name='loadCapacity'
+                render={({ field: { onChange, value } }) => (
+                  <View className='overflow-hidden bg-white rounded-xl border-2 border-gray-200'>
+                    <Picker
+                      selectedValue={value}
+                      onValueChange={onChange}
+                      style={{ height: 50 }}
+                    >
+                      {generateCapacityOptions().map((opt) => (
+                        <Picker.Item
+                          key={opt.value}
+                          label={opt.label}
+                          value={opt.value}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
+              />
+              {errors.loadCapacity && (
+                <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
+                  {errors.loadCapacity.message}
+                </Text>
+              )}
+            </View>
+
+            {/* Truck Height */}
+            <View className='mb-6'>
+              <Text className='mb-3 text-sm font-bold text-gray-700'>
+                {t('vehicles.truckHeight')}
+              </Text>
+              <Controller
+                control={control}
+                name='truckHeight'
+                render={({ field: { onChange, value } }) => (
+                  <View className='overflow-hidden bg-white rounded-xl border-2 border-gray-200'>
+                    <Picker
+                      selectedValue={value}
+                      onValueChange={onChange}
+                      style={{ height: 50 }}
+                    >
+                      {generateHeightOptions().map((opt) => (
+                        <Picker.Item
+                          key={opt.value}
+                          label={opt.label}
+                          value={opt.value}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
+              />
+              {errors.truckHeight && (
+                <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
+                  {errors.truckHeight.message}
+                </Text>
+              )}
+            </View>
+
+            {/* Referral Code */}
+            <View className='mb-4'>
+              <TouchableOpacity
+                className='flex-row items-center'
+                onPress={() => setReferralCodeVisible(!referralCodeVisible)}
+                activeOpacity={0.7}
+              >
+                <View
+                  className={`w-6 h-6 border-2 rounded mr-3 items-center justify-center ${
+                    referralCodeVisible
+                      ? 'bg-primary border-primary'
+                      : 'border-gray-300'
+                  }`}
+                >
+                  {referralCodeVisible && (
+                    <Ionicons name='checkmark' size={16} color='#fff' />
+                  )}
+                </View>
+                <Text className='text-base font-semibold text-gray-700'>
+                  {t('vehicles.haveReferralCode')}
+                </Text>
+              </TouchableOpacity>
+              {referralCodeVisible && (
+                <TextInput
+                  className='px-5 py-4 mt-3 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
+                  placeholder={t('vehicles.referralCode')}
+                  value={referralCode}
+                  onChangeText={setReferralCode}
+                  placeholderTextColor='#9CA3AF'
+                />
+              )}
+            </View>
+
+            <TouchableOpacity
+              className='flex-row justify-center items-center py-6 mb-4 rounded-xl shadow-lg bg-primary'
+              onPress={handleSubmit(onSubmit)}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color='#fff' size='small' />
+              ) : (
+                <>
+                  <Ionicons name='card-outline' size={22} color='#FFFFFF' />
+                  <Text className='ml-2 text-lg font-bold text-center text-white'>
+                    {t('vehicles.submitAndPay')}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <View className='p-4 mb-6 bg-yellow-50 rounded-xl border border-yellow-200'>
+              <View className='flex-row items-start'>
+                <Ionicons
+                  name='information-circle-outline'
+                  size={20}
+                  color='#F59E0B'
+                />
+                <Text className='ml-2 text-sm font-medium leading-5 text-yellow-800'>
+                  {t('vehicles.verificationNote')}
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

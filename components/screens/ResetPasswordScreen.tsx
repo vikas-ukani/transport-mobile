@@ -6,33 +6,35 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import * as yup from 'yup';
-import i18n from '../../i18n/config';
+
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api.service';
 import { styles } from '../../styles/common';
 
 const ResetPasswordScreen = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const schema = yup.object().shape({
-    email: yup.string().required(i18n.t('common.emailRequired')),
+    email: yup.string().required(t('common.emailRequired')),
     new_password: yup
       .string()
-      .required(i18n.t('common.passwordRequired'))
+      .required(t('common.passwordRequired'))
       .min(6, 'Password must be at least 6 characters'),
     confirmPassword: yup
       .string()
-      .required(i18n.t('common.confirmPasswordRequired'))
+      .required(t('common.confirmPasswordRequired'))
       .oneOf([yup.ref('new_password')], 'Passwords do not match'),
   });
 
@@ -121,9 +123,9 @@ const ResetPasswordScreen = () => {
                   <Ionicons name='car-sport' size={40} color='#FFFFFF' />
                 </LinearGradient>
               </View>
-              <Text style={styles.title}>{i18n.t('common.resetPassword')}</Text>
+              <Text style={styles.title}>{t('common.resetPassword')}</Text>
               <Text style={styles.subtitle}>
-                {i18n.t('common.updateYourPassword')}
+                {t('common.updateYourPassword')}
               </Text>
             </View>
 
@@ -131,7 +133,7 @@ const ResetPasswordScreen = () => {
             <View style={styles.formContainer}>
               {/* Email/Mobile Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{i18n.t('login.email')}</Text>
+                <Text style={styles.label}>{t('login.email')}</Text>
                 <Controller
                   control={control}
                   name='email'
@@ -151,7 +153,7 @@ const ResetPasswordScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder={i18n.t('login.email')}
+                        placeholder={t('login.email')}
                         placeholderTextColor='#9CA3AF'
                         value={value}
                         onChangeText={onChange}
@@ -174,7 +176,7 @@ const ResetPasswordScreen = () => {
 
               <View style={styles.inputContainer}>
                 <View className='flex-row gap-1 items-start'>
-                  <Text style={styles.label}>{i18n.t('common.password')}</Text>{' '}
+                  <Text style={styles.label}>{t('common.password')}</Text>{' '}
                   <Text className='text-red-500'>*</Text>
                   {errors.new_password && (
                     <Text style={styles.errorText}>
@@ -201,7 +203,7 @@ const ResetPasswordScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder={i18n.t('common.password')}
+                        placeholder={t('common.password')}
                         placeholderTextColor='#9CA3AF'
                         value={value}
                         onChangeText={onChange}
@@ -239,7 +241,7 @@ const ResetPasswordScreen = () => {
               <View style={styles.inputContainer}>
                 <View className='flex-row gap-1 items-start'>
                   <Text style={styles.label}>
-                    {i18n.t('common.confirmPassword')}
+                    {t('common.confirmPassword')}
                   </Text>{' '}
                   <Text className='text-red-500'>*</Text>
                   {errors.confirmPassword && (
@@ -267,7 +269,7 @@ const ResetPasswordScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder={i18n.t('common.confirmPassword')}
+                        placeholder={t('common.confirmPassword')}
                         placeholderTextColor='#9CA3AF'
                         value={value}
                         onChangeText={onChange}
@@ -310,7 +312,7 @@ const ResetPasswordScreen = () => {
                 >
                   <>
                     <Text style={styles.loginButtonText}>
-                      {i18n.t('common.updatePassword')}
+                      {t('common.updatePassword')}
                     </Text>
 
                     {loading ? (
@@ -338,12 +340,8 @@ const ResetPasswordScreen = () => {
                     size={20}
                     className='text-primary'
                   />
-                  <Text style={styles.signUpLink}>
-                    {i18n.t('common.backTO')}
-                  </Text>
-                  <Text style={styles.signUpLink}>
-                    {i18n.t('common.login')}
-                  </Text>
+                  <Text style={styles.signUpLink}>{t('common.backTO')}</Text>
+                  <Text style={styles.signUpLink}>{t('common.login')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

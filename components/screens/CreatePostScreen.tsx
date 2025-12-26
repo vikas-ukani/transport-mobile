@@ -17,10 +17,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as yup from 'yup';
-import i18n from '../../i18n/config';
+
+import { useTranslation } from 'react-i18next';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import apiService, { getBaseUrl } from '../../services/api.service';
 
 const CreatePostScreen = () => {
+  const { t } = useTranslation();
   const { id } = useGlobalSearchParams();
 
   const [images, setImages] = useState<string[]>([]);
@@ -31,7 +34,7 @@ const CreatePostScreen = () => {
     content: yup.string(),
     imageIds: yup
       .array()
-      .of(yup.string().required(i18n.t('common.imageOneRequired'))),
+      .of(yup.string().required(t('common.imageOneRequired'))),
   });
 
   const {
@@ -159,137 +162,152 @@ const CreatePostScreen = () => {
 
   return (
     <SafeAreaView className='flex-1 bg-gray-50'>
-      <View className='flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className='flex-row gap-4 justify-start items-center p-2 -ml-2'
-          activeOpacity={0.7}
-        >
-          <Ionicons name='arrow-back' size={24} color='#1F2937' />
-          <Text className='text-xl font-bold text-gray-900'>
-            {i18n.t('post.pageTitle')}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        className='flex-1 px-5 py-6'
-        showsVerticalScrollIndicator={false}
+      <KeyboardAwareScrollView
+        className='flex-1 bg-white'
+        contentContainerStyle={{ flexGrow: 1 }}
+        enableOnAndroid
+        keyboardShouldPersistTaps='handled'
       >
-        {/* title */}
-        <View className='mb-6'>
-          <Text className='mb-3 text-sm font-bold text-gray-700'>
-            {i18n.t('post.title')}
-          </Text>
-          <Controller
-            control={control}
-            name='title'
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
-                placeholder={i18n.t('post.title')}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholderTextColor='#9CA3AF'
-              />
-            )}
-          />
-          {errors.title && (
-            <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-              {errors.title.message}
-            </Text>
-          )}
-        </View>
-
-        {/* Description */}
-        <View className='mb-6'>
-          <Text className='mb-3 text-sm font-bold text-gray-700'>
-            {i18n.t('post.description')}
-          </Text>
-          <Controller
-            control={control}
-            name='content'
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
-                placeholder={i18n.t('post.description')}
-                multiline
-                value={value}
-                numberOfLines={6}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                textAlignVertical='top'
-                placeholderTextColor='#9CA3AF'
-              />
-            )}
-          />
-        </View>
-
-        {/* Images */}
-        <View className='mb-6'>
-          <Text className='mb-3 text-sm font-bold text-gray-700'>
-            {i18n.t('post.addImages')}
-          </Text>
+        <View className='flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
           <TouchableOpacity
-            className='items-center py-8 bg-gray-50 rounded-xl border-2 border-gray-300 border-dashed'
-            onPress={selectPhoto}
+            onPress={() => router.back()}
+            className='flex-row gap-4 justify-start items-center p-2 -ml-2'
+            activeOpacity={0.7}
           >
-            <Ionicons name='image-outline' size={40} color='#9CA3AF' />
-            <Text className='mt-3 text-base font-semibold text-gray-600'>
-              {i18n.t('post.addImages')}
-            </Text>
-            <Text className='mt-1 text-sm text-gray-400'>
-              Tap to select images
+            <Ionicons name='arrow-back' size={24} color='#1F2937' />
+            <Text className='text-xl font-bold text-gray-900'>
+              {t('post.pageTitle')}
             </Text>
           </TouchableOpacity>
-          {images.length === 0 && (
-            <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-              {i18n.t('common.imageOneRequired')}
-            </Text>
-          )}
-          {images.length > 0 && (
-            <View className='flex-row flex-wrap mt-4'>
-              {images.map((uri, index) => (
-                <View key={index} className='relative mr-3 mb-3'>
-                  <Image source={{ uri }} className='w-28 h-28 rounded-xl' />
-                  <TouchableOpacity
-                    className='absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-lg'
-                    onPress={() => removeImage(index)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name='close' size={18} color='#fff' />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
+
+          <View style={{ width: 40 }} />
         </View>
 
-        <TouchableOpacity
-          className=''
-          activeOpacity={0.8}
-          onPress={handleSubmit(onSubmit)}
-          disabled={loading}
+        <ScrollView
+          className='flex-1 px-5 py-6'
+          showsVerticalScrollIndicator={false}
         >
-          <View
-            className={`flex-row justify-center p-2 px-8 items-center !text-white gap-3 rounded-xl shadow-md bg-primary`}
-          >
-            {loading ? (
-              <ActivityIndicator color='#fff' size='small' />
-            ) : (
-              <>
-                <Ionicons name='add-circle-outline' size={22} color='#FFFFFF' />
-                <Text className='ml-2 text-lg font-bold text-center text-white'>
-                  {i18n.t('post.title')}
-                </Text>
-              </>
+          {/* title */}
+          <View className='mb-6'>
+            <Text className='mb-3 text-sm font-bold text-gray-700'>
+              {t('post.title')}
+            </Text>
+            <Controller
+              control={control}
+              name='title'
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
+                  placeholder={t('post.title')}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholderTextColor='#9CA3AF'
+                />
+              )}
+            />
+            {errors.title && (
+              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
+                {errors.title.message}
+              </Text>
             )}
           </View>
-        </TouchableOpacity>
-      </ScrollView>
+
+          {/* Description */}
+          <View className='mb-6'>
+            <Text className='mb-3 text-sm font-bold text-gray-700'>
+              {t('post.description')}
+            </Text>
+            <Controller
+              control={control}
+              name='content'
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  className='px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200'
+                  placeholder={t('post.description')}
+                  value={value}
+                  multiline={true}
+                  numberOfLines={10}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  textAlignVertical='top'
+                  placeholderTextColor='#9CA3AF'
+                  style={{
+                    height: 150,
+                    textAlignVertical: 'top',
+                  }}
+                />
+              )}
+            />
+          </View>
+
+          {/* Images */}
+          <View className='mb-6'>
+            <Text className='mb-3 text-sm font-bold text-gray-700'>
+              {t('post.addImages')}
+            </Text>
+            <TouchableOpacity
+              className='items-center py-8 bg-gray-50 rounded-xl border-2 border-gray-300 border-dashed'
+              onPress={selectPhoto}
+            >
+              <Ionicons name='image-outline' size={40} color='#9CA3AF' />
+              <Text className='mt-3 text-base font-semibold text-gray-600'>
+                {t('post.addImages')}
+              </Text>
+              <Text className='mt-1 text-sm text-gray-400'>
+                Tap to select images
+              </Text>
+            </TouchableOpacity>
+            {images.length === 0 && (
+              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
+                {t('common.imageOneRequired')}
+              </Text>
+            )}
+            {images.length > 0 && (
+              <View className='flex-row flex-wrap mt-4'>
+                {images.map((uri, index) => (
+                  <View key={index} className='relative mr-3 mb-3'>
+                    <Image source={{ uri }} className='w-28 h-28 rounded-xl' />
+                    <TouchableOpacity
+                      className='absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-lg'
+                      onPress={() => removeImage(index)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name='close' size={18} color='#fff' />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            className=''
+            activeOpacity={0.8}
+            onPress={handleSubmit(onSubmit)}
+            disabled={loading}
+          >
+            <View
+              className={`flex-row justify-center p-2 px-8 items-center !text-white gap-3 rounded-xl shadow-md bg-primary`}
+            >
+              {loading ? (
+                <ActivityIndicator color='#fff' size='small' />
+              ) : (
+                <>
+                  <Ionicons
+                    name='add-circle-outline'
+                    size={22}
+                    color='#FFFFFF'
+                  />
+                  <Text className='ml-2 text-lg font-bold text-center text-white'>
+                    {t('post.title')}
+                  </Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

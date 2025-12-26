@@ -4,9 +4,12 @@ import { router } from 'expo-router';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import Swiper from 'react-native-swiper';
 import { useAuth } from '../../context/AuthContext';
-import i18n from '../../i18n/config';
+
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService, { getBaseUrl } from '../../services/api.service';
 import { Post } from '../screens/HomeScreen';
+import ConfirmPopup from './ConfirmPopup';
 
 const PostItems = ({
   item,
@@ -19,7 +22,18 @@ const PostItems = ({
   accessEdit: boolean;
   accessDelete: boolean;
 }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    return () => {
+      setLoading(false);
+    };
+  }, []);
 
   const handleDelete = async (postId: string) => {
     try {
@@ -31,6 +45,8 @@ const PostItems = ({
       }
     } catch (error) {
       console.error('Failed to delete post:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,6 +67,18 @@ const PostItems = ({
       key={item.id}
       className='overflow-hidden !relative mb-4 bg-white rounded-xl border-2 border-gray-100 shadow'
     >
+      <ConfirmPopup
+        loading={loading}
+        show={showConfirmDelete !== null}
+        onCancel={() => {
+          setShowConfirmDelete(null);
+          setLoading(false);
+        }}
+        onConfirm={() => handleDelete(showConfirmDelete!)}
+        title='Delete?'
+        subTitle='Are you sure you want to delete?'
+      />
+
       <View className='absolute top-2 right-2 z-10 flex-col gap-4'>
         {accessEdit && (
           <TouchableOpacity
@@ -71,7 +99,7 @@ const PostItems = ({
         {accessDelete && (
           <TouchableOpacity
             className=' bg-red-500 rounded-full p-1.5 shadow-lg '
-            onPress={() => handleDelete(item.id)}
+            onPress={() => setShowConfirmDelete(item.id)}
             activeOpacity={0.8}
           >
             <Ionicons name='close' size={18} color='#fff' />
@@ -136,7 +164,7 @@ const PostItems = ({
               onPress={() => handleLikePost(item.id)} // Optional: add onPress for liking post
               activeOpacity={0.7}
             >
-              <Text>{i18n.t('common.like')}</Text>
+              <Text>{t('common.like')}</Text>
               {item.likes.includes(user?.id || '') ? (
                 <Ionicons name='heart-sharp' size={22} color='#EF4444' />
               ) : (

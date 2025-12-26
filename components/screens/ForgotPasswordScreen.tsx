@@ -16,7 +16,8 @@ import {
   View,
 } from 'react-native';
 import * as yup from 'yup';
-import i18n from '../../i18n/config';
+
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api.service';
 import { styles } from '../../styles/common';
 
@@ -29,6 +30,7 @@ const schema = yup.object().shape({
 });
 
 const ForgotPasswordScreen = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -86,14 +88,14 @@ const ForgotPasswordScreen = () => {
                   <Ionicons name='car-sport' size={40} color='#FFFFFF' />
                 </LinearGradient>
               </View>
-              <Text style={styles.title}>{i18n.t('forgotPassword.pageTitle')}</Text>
+              <Text style={styles.title}>{t('forgotPassword.pageTitle')}</Text>
             </View>
 
             {/* Form Section */}
             <View style={styles.formContainer}>
               {/* Email/Mobile Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{i18n.t('login.email')}</Text>
+                <Text style={styles.label}>{t('login.email')}</Text>
                 <Controller
                   control={control}
                   name='email'
@@ -113,7 +115,7 @@ const ForgotPasswordScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder={i18n.t('login.email')}
+                        placeholder={t('login.email')}
                         placeholderTextColor='#9CA3AF'
                         value={value}
                         onChangeText={onChange}
@@ -153,7 +155,7 @@ const ForgotPasswordScreen = () => {
                 >
                   <>
                     <Text style={styles.loginButtonText}>
-                      {i18n.t('forgotPassword.pageTitle')}
+                      {t('forgotPassword.pageTitle')}
                     </Text>
 
                     {loading ? (
@@ -172,11 +174,11 @@ const ForgotPasswordScreen = () => {
 
               {/* Sign Up Link */}
               <View style={styles.signUpContainer} className='!mb-6'>
-                <Text style={styles.signUpText}>{i18n.t('login.haveAccount')} </Text>
+                <Text style={styles.signUpText}>{t('login.haveAccount')} </Text>
                 <TouchableOpacity
                   onPress={() => router.replace('/(auth)/login')}
                 >
-                  <Text style={styles.signUpLink}>{i18n.t('common.login')}</Text>
+                  <Text style={styles.signUpLink}>{t('common.login')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

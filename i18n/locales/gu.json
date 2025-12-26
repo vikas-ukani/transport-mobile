@@ -49,8 +49,9 @@
     "profilePhoto": "પ્રોફાઇલ ફોટો",
     "myVehicles": "મારા વાહનો",
     "imageOneRequired": "કૃપા કરીને ઓછામાં ઓછી એક છબી અપલોડ કરો",
-    "languageChanged": "ભાષા સફળતાપૂર્વક બદલાઈ ગઈ",
-    "bookVehicle": "વાહન બુક કરો"
+    "languageChanged": "ભાષા સફળતાપૂર્વક બદલાઈ",
+    "bookVehicle": "વાહન બુક કરો",
+    "thankYou": "આભાર"
   },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",
@@ -59,7 +60,12 @@
     "forgotPassword": "પાસવર્ડ ભૂલી ગયા?",
     "dontHaveAccount": "ખાતું નથી?",
     "signUp": "સાઇન અપ કરો",
-    "haveAccount": "મારી પાસે પહેલેથી જ એકાઉન્ટ છે"
+    "haveAccount": "મારી પાસે પહેલેથી જ એકાઉન્ટ છે",
+    "validation": {
+      "emailRequired": "ઇમેઇલ આવશ્યક છે",
+      "passwordMin": "પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો હોવો જોઈએ",
+      "passwordRequired": "પાસવર્ડ જરૂરી છે"
+    }
   },
   "register": {
     "title": "ખાતું બનાવો",
@@ -76,7 +82,22 @@
     "vehicleRegistration": "વાહન નોંધણી નંબર",
     "vehicleRegistrationPhoto": "વાહન નોંધણી ફોટો",
     "otpSending": "OTP મોકલી રહ્યું છે",
-    "otpVerified": "OTP ચકાસાયેલ"
+    "otpVerified": "OTP ચકાસાયેલ",
+    "validation": {
+      "confirmPasswordRequired": "કૃપા કરીને તમારા પાસવર્ડની પુષ્ટિ કરો",
+      "emailInvalid": "અમાન્ય ઇમેઇલ સરનામું",
+      "emailRequired": "ઇમેઇલ આવશ્યક છે",
+      "mobileInvalid": "અમાન્ય મોબાઇલ નંબર",
+      "mobileRequired": "મોબાઈલ નંબર જરૂરી છે",
+      "nameRequired": "નામ જરૂરી છે",
+      "otpInvalid": "અમાન્ય OTP",
+      "otpRequired": "OTP જરૂરી છે",
+      "passwordMin": "પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો હોવો જોઈએ",
+      "passwordRequired": "પાસવર્ડ જરૂરી છે",
+      "passwordsNotMatch": "પાસવર્ડ મેળ ખાતા નથી",
+      "photoRequired": "ફોટો જરૂરી છે",
+      "vehicleRegRequired": "ડ્રાઇવરો માટે વાહન નોંધણી નંબર જરૂરી છે"
+    }
   },
   "home": {
     "title": "હોમ",
@@ -106,14 +127,23 @@
     "successMessage": "તમારી બુકિંગની પુષ્ટિ થઈ છે",
     "schedulePickup": "પિકઅપ શેડ્યૂલ કરો",
     "validation": {
-      "fromRequired": "સ્થાનથી જરૂરી છે"
+      "fromRequired": "સ્થાનથી જરૂરી છે",
+      "heightRequired": "ટ્રકની ઊંચાઈ જરૂરી છે",
+      "lengthRequired": "ટ્રકની લંબાઈ જરૂરી છે",
+      "materialTypeRequired": "સામગ્રીનો પ્રકાર જરૂરી છે",
+      "toRequired": "સ્થાન માટે જરૂરી છે",
+      "truckTypeRequired": "ટ્રક પ્રકાર જરૂરી છે",
+      "weightRequired": "સામગ્રીનું વજન જરૂરી છે"
     },
     "bookNow": "હમણાં બુક કરો",
     "selectPickupTime": "પિકઅપ સમય પસંદ કરો",
     "truckWeight": "ટ્રક વજન",
     "selectBookingDate": "બુકિંગ તારીખ પસંદ કરો",
     "bookingDate": "બુકિંગ તારીખ પસંદ કરો",
-    "selectToLocation": "સ્થાન પસંદ કરો"
+    "selectToLocation": "સ્થાન પસંદ કરો",
+    "fromLocation": "સ્થાન પરથી",
+    "selectFromLocation": "સ્થાનમાંથી પસંદ કરો",
+    "toLocation": "સ્થાન માટે"
   },
   "vehicles": {
     "title": "વાહન નોંધણી",
@@ -143,20 +173,31 @@
     "myVehicles": "મારા વાહનો",
     "validation": {
       "rcPhotoRequired": "RC બુકનો ફોટો જરૂરી છે",
-      "truckPhotoRequired": "ટ્રકનો ફોટો જરૂરી છે"
+      "truckPhotoRequired": "ટ્રકનો ફોટો જરૂરી છે",
+      "bodyTypeRequired": "શારીરિક પ્રકાર જરૂરી છે",
+      "capacityRequired": "લોડ ક્ષમતા જરૂરી છે",
+      "heightRequired": "ટ્રકની ઊંચાઈ જરૂરી છે",
+      "lengthRequired": "ટ્રકની લંબાઈ જરૂરી છે",
+      "rcNumberRequired": "આરસી બુક નંબર જરૂરી છે",
+      "truckTypeRequired": "ટ્રક પ્રકાર જરૂરી છે"
     },
     "truckPhotos": "ટ્રક ફોટો",
     "notMentioned": "ઉલ્લેખ નથી",
     "vehicleDeleted": "વાહન સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું",
     "kilometer": "કિલોમીટર",
-    "estimatedPrice": "અંદાજિત કિંમત"
+    "estimatedPrice": "અંદાજિત કિંમત",
+    "estimatedKilometer": "અંદાજિત કિલોમીટર"
   },
   "post": {
     "pageTitle": "પોસ્ટ બનાવો",
     "title": "શીર્ષક",
     "description": "વર્ણન",
     "addImages": "છબીઓ ઉમેરો",
-    "post": "પોસ્ટ"
+    "post": "પોસ્ટ",
+    "validation": {
+      "imageRequired": "ઓછામાં ઓછી એક છબી જરૂરી છે",
+      "titleRequired": "શીર્ષક જરૂરી છે"
+    }
   },
   "postDetail": {
     "title": "પોસ્ટ વિગતો",
@@ -165,5 +206,34 @@
   },
   "forgotPassword": {
     "pageTitle": "પાસવર્ડ ભૂલી ગયા છો"
+  },
+  "security": {
+    "activeSessions": "સક્રિય સત્રો",
+    "biometricAuth": "બાયોમેટ્રિક પ્રમાણીકરણ",
+    "biometricDescription": "લૉગિન કરવા માટે ફિંગરપ્રિન્ટ અથવા ફેસ આઈડીનો ઉપયોગ કરો",
+    "changePassword": "પાસવર્ડ બદલો",
+    "confirmNewPassword": "નવા પાસવર્ડની પુષ્ટિ કરો",
+    "currentDevice": "વર્તમાન ઉપકરણ",
+    "currentPassword": "વર્તમાન પાસવર્ડ",
+    "lastActive": "છેલ્લે સક્રિય",
+    "newPassword": "નવો પાસવર્ડ",
+    "passwordChangeFailed": "પાસવર્ડ બદલવામાં નિષ્ફળ",
+    "passwordChanged": "પાસવર્ડ સફળતાપૂર્વક બદલાયો",
+    "title": "સુરક્ષા",
+    "twoFactorAuth": "દ્વિ-પરિબળ પ્રમાણીકરણ",
+    "twoFactorDescription": "સુરક્ષાનો વધારાનો સ્તર ઉમેરો",
+    "viewAllSessions": "બધા સત્રો જુઓ"
+  },
+  "settings": {
+    "about": "વિશે",
+    "appVersion": "એપ્લિકેશન સંસ્કરણ",
+    "buildNumber": "બિલ્ડ નંબર",
+    "location": "સ્થાન",
+    "locationServices": "સ્થાન સેવાઓ",
+    "notifications": "સૂચનાઓ",
+    "pushNotifications": "પુશ સૂચનાઓ",
+    "security": "સુરક્ષા",
+    "securitySettings": "સુરક્ષા સેટિંગ્સ",
+    "title": "સેટિંગ્સ"
   }
 }

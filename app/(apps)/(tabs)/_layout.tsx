@@ -1,7 +1,7 @@
 import { FontAwesome } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { IconSymbol } from '../../../components/ui/icon-symbol';
-import i18n from '../../../i18n/config';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -10,6 +10,7 @@ export const unstable_settings = {
 };
 
 export default function AppTabLayout() {
+  const { t } = useTranslation();
   // Workaround for web - ensure Tabs always render
   // On web, the tabs may not show unless the layout file exports unstable_settings with anchor
 
@@ -28,7 +29,7 @@ export default function AppTabLayout() {
       <Tabs.Screen
         name='index'
         options={{
-          title: i18n.t('common.home'),
+          title: t('common.home'),
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={28}
@@ -41,7 +42,7 @@ export default function AppTabLayout() {
       <Tabs.Screen
         name='bookings'
         options={{
-          title: i18n.t('common.booking'),
+          title: t('common.booking'),
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
               name='bookmark'
@@ -54,7 +55,7 @@ export default function AppTabLayout() {
       <Tabs.Screen
         name='vehicles'
         options={{
-          title: i18n.t('common.myVehicles'),
+          title: t('common.myVehicles'),
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
               name='truck'
@@ -67,7 +68,7 @@ export default function AppTabLayout() {
       <Tabs.Screen
         name='profile'
         options={{
-          title: i18n.t('common.profile'),
+          title: t('common.profile'),
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
               name='gear'

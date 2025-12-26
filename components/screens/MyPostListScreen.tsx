@@ -4,13 +4,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import i18n from '../../i18n/config';
+
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api.service';
 import socketService from '../../services/socket';
 import PostItems from '../common/PostItem';
 import { Post } from './HomeScreen';
 
 const MyPostListScreen = () => {
+  const { t } = useTranslation();
   const [filterPosts, setFilterPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,6 +54,7 @@ const MyPostListScreen = () => {
 
   return (
     <SafeAreaView className='flex-1 bg-gray-50'>
+
       <View className='flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
         <TouchableOpacity
           onPress={() => router.replace('/(apps)/(tabs)')}
@@ -60,7 +63,7 @@ const MyPostListScreen = () => {
         >
           <Ionicons name='arrow-back' size={24} color='#1F2937' />
           <Text className='text-xl font-bold text-gray-900'>
-            {i18n.t('home.title')}
+            {t('home.title')}
           </Text>
         </TouchableOpacity>
 
@@ -72,7 +75,7 @@ const MyPostListScreen = () => {
           <View className='flex-row gap-1 items-center'>
             <Ionicons name='add-circle-outline' size={24} color='black' />
             <Text className='text-xl font-bold text-black'>
-              {i18n.t('home.post')}
+              {t('home.post')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -98,7 +101,7 @@ const MyPostListScreen = () => {
           <View className='items-center py-16'>
             <Ionicons name='document-text-outline' size={64} color='#D1D5DB' />
             <Text className='mt-4 text-base font-medium text-gray-500'>
-              {i18n.t('booking.noBookings')}
+              {t('booking.noBookings')}
             </Text>
           </View>
         )}

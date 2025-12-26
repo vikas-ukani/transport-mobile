@@ -8,6 +8,8 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
+import { SYSTEM_DEFAULT_LANGUAGE } from '../i18n/config';
 import apiService from '../services/api.service';
 import socketService from '../services/socket';
 
@@ -44,6 +46,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }: any) => {
+  const { i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,6 +58,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Connect socket when user is authenticated
   useEffect(() => {
     if (user) {
+      i18n.changeLanguage(user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE);
+      // i18n.defaultLocale = user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE;
       socketService.connect();
     } else {
       socketService.disconnect();

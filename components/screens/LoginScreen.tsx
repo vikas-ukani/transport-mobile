@@ -6,18 +6,19 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import * as yup from 'yup';
 import { useAuth } from '../../context/AuthContext';
-import i18n from '../../i18n/config';
+
+import { useTranslation } from 'react-i18next';
 import { getApiUrl } from '../../services/api.service';
 import { styles } from '../../styles/common';
 
@@ -35,6 +36,7 @@ const schema = yup.object().shape({
 });
 
 const LoginScreen = () => {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -86,8 +88,8 @@ const LoginScreen = () => {
                   <Ionicons name='car-sport' size={40} color='#FFFFFF' />
                 </LinearGradient>
               </View>
-              <Text style={styles.title}>{i18n.t('login.title')}</Text>
-              <Text style={styles.subtitle}>{i18n.t('login.subtitle')}</Text>
+              <Text style={styles.title}>{t('login.title')}</Text>
+              <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
               <Text style={styles.subtitle}>{getApiUrl()}</Text>
             </View>
 
@@ -95,7 +97,7 @@ const LoginScreen = () => {
             <View style={styles.formContainer}>
               {/* Email/Mobile Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{i18n.t('login.email')}</Text>
+                <Text style={styles.label}>{t('login.email')}</Text>
                 <Controller
                   control={control}
                   name='email'
@@ -115,7 +117,7 @@ const LoginScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder={i18n.t('login.email')}
+                        placeholder={t('login.email')}
                         placeholderTextColor='#9CA3AF'
                         value={value}
                         onChangeText={onChange}
@@ -137,7 +139,7 @@ const LoginScreen = () => {
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{i18n.t('common.password')}</Text>
+                <Text style={styles.label}>{t('common.password')}</Text>
                 <Controller
                   control={control}
                   name='password'
@@ -157,7 +159,7 @@ const LoginScreen = () => {
                       />
                       <TextInput
                         style={styles.input}
-                        placeholder={i18n.t('common.password')}
+                        placeholder={t('common.password')}
                         placeholderTextColor='#9CA3AF'
                         value={value}
                         onChangeText={onChange}
@@ -198,7 +200,7 @@ const LoginScreen = () => {
                 onPress={() => router.push('/forgot-password')}
               >
                 <Text style={styles.forgotPasswordText}>
-                  {i18n.t('login.forgotPassword')}
+                  {t('login.forgotPassword')}
                 </Text>
               </TouchableOpacity>
 
@@ -222,7 +224,7 @@ const LoginScreen = () => {
                 >
                   <>
                     <Text style={styles.loginButtonText}>
-                      {i18n.t('common.login')}
+                      {t('common.login')}
                     </Text>
 
                     {loading ? (
@@ -242,21 +244,21 @@ const LoginScreen = () => {
               {/* Divider */}
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>{i18n.t('common.or')}</Text>
+                <Text style={styles.dividerText}>{t('common.or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
               {/* Sign Up Link */}
               <View style={styles.signUpContainer}>
                 <Text style={styles.signUpText}>
-                  {i18n.t('login.dontHaveAccount')}{' '}
+                  {t('login.dontHaveAccount')}{' '}
                 </Text>
                 <TouchableOpacity
                   onPress={() => router.replace('/(auth)/register')}
                   // onPress={() => router.push('register')}
                 >
                   <Text style={styles.signUpLink}>
-                    {i18n.t('login.signUp')}
+                    {t('login.signUp')}
                   </Text>
                 </TouchableOpacity>
               </View>

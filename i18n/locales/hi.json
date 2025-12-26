@@ -50,7 +50,8 @@
     "myVehicles": "मेरे वाहन",
     "imageOneRequired": "कम से कम एक छवि आवश्यक है",
     "languageChanged": "भाषा सफलतापूर्वक बदली गई",
-    "bookVehicle": "वाहन बुक करें"
+    "bookVehicle": "वाहन बुक करें",
+    "thankYou": "धन्यवाद"
   },
   "login": {
     "title": "वापसी पर स्वागत है",
@@ -139,7 +140,10 @@
     "truckWeight": "ट्रक का वजन",
     "selectBookingDate": "बुकिंग की तारीख चुनें",
     "bookingDate": "बुकिंग की तारीख चुनें",
-    "selectToLocation": "गंतव्य स्थान चुनें"
+    "selectToLocation": "गंतव्य स्थान चुनें",
+    "fromLocation": "स्थान से",
+    "selectFromLocation": "स्थान से चयन करें",
+    "toLocation": "स्थान के लिए"
   },
   "vehicles": {
     "title": "वाहन पंजीकरण",
@@ -181,7 +185,8 @@
     "notMentioned": "उल्लेख नहीं किया गया",
     "vehicleDeleted": "वाहन सफलतापूर्वक हटा दिया गया",
     "kilometer": "किलोमीटर",
-    "estimatedPrice": "अनुमानित मूल्य"
+    "estimatedPrice": "अनुमानित मूल्य",
+    "estimatedKilometer": "अनुमानित किलोमीटर"
   },
   "post": {
     "pageTitle": "पोस्ट बनाएं",
