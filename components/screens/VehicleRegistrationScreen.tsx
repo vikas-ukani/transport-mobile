@@ -92,7 +92,7 @@ const VehicleRegistrationScreen = () => {
       setLoading(true);
       // Replace this URL with your actual API endpoint
       const res = await apiService.getVehicle(id);
-      if (res.success === false) {
+      if (res?.success === false) {
         toast.error(res.message || 'Failed to fetch vehicle data');
         return;
       }
@@ -435,7 +435,7 @@ const VehicleRegistrationScreen = () => {
             <View className='mb-6'>
               <View className='flex-row gap-2 items-center'>
                 <Text className='mb-3 text-sm font-bold text-gray-700'>
-                  {t('vehicles.rcNumber')}{' '}
+                  {t('vehicles.rcNumber')}
                   <Text className='text-danger'>*</Text>
                 </Text>
                 {errors.rcNumber && (

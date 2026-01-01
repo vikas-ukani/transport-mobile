@@ -51,7 +51,12 @@
     "imageOneRequired": "કૃપા કરીને ઓછામાં ઓછી એક છબી અપલોડ કરો",
     "languageChanged": "ભાષા સફળતાપૂર્વક બદલાઈ",
     "bookVehicle": "વાહન બુક કરો",
-    "thankYou": "આભાર"
+    "thankYou": "આભાર",
+    "titleRequired": "શીર્ષક આવશ્યક છે",
+    "contentRequired": "સામગ્રી જરૂરી છે.",
+    "seeAll": "બધા જુઓ",
+    "showMore": "વધુ બતાવો",
+    "updatePost": "પોસ્ટ અપડેટ કરો"
   },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",
@@ -197,7 +202,10 @@
     "validation": {
       "imageRequired": "ઓછામાં ઓછી એક છબી જરૂરી છે",
       "titleRequired": "શીર્ષક જરૂરી છે"
-    }
+    },
+    "createPageTitle": "પોસ્ટ બનાવો",
+    "editPageTitle": "પોસ્ટ અપડેટ કરો",
+    "tapToSelectImages": "છબીઓ પસંદ કરવા માટે ટેપ કરો"
   },
   "postDetail": {
     "title": "પોસ્ટ વિગતો",

@@ -51,7 +51,12 @@
     "imageOneRequired": "कम से कम एक छवि आवश्यक है",
     "languageChanged": "भाषा सफलतापूर्वक बदली गई",
     "bookVehicle": "वाहन बुक करें",
-    "thankYou": "धन्यवाद"
+    "thankYou": "धन्यवाद",
+    "titleRequired": "शीर्षक आवश्यक है",
+    "contentRequired": "सामग्री आवश्यक है.",
+    "seeAll": "सभी देखें",
+    "showMore": "और दिखाएँ",
+    "updatePost": "पोस्ट अपडेट करें"
   },
   "login": {
     "title": "वापसी पर स्वागत है",
@@ -197,7 +202,10 @@
     "validation": {
       "titleRequired": "शीर्षक आवश्यक है",
       "imageRequired": "कम से कम एक छवि आवश्यक है"
-    }
+    },
+    "createPageTitle": "पोस्ट बनाएं",
+    "editPageTitle": "पोस्ट अपडेट करें",
+    "tapToSelectImages": "छवियाँ चुनने के लिए टैप करें"
   },
   "postDetail": {
     "title": "पोस्ट विवरण",

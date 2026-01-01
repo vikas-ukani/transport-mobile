@@ -6,14 +6,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import * as yup from 'yup';
 
@@ -176,14 +176,14 @@ const ResetPasswordScreen = () => {
 
               <View style={styles.inputContainer}>
                 <View className='flex-row gap-1 items-start'>
-                  <Text style={styles.label}>{t('common.password')}</Text>{' '}
+                  <Text style={styles.label}>{t('common.password')}</Text>
                   <Text className='text-red-500'>*</Text>
                   {errors.new_password && (
                     <Text style={styles.errorText}>
                       {errors.new_password.message}
                     </Text>
                   )}
-                </View>{' '}
+                </View>
                 <Controller
                   control={control}
                   name='new_password'
@@ -242,7 +242,7 @@ const ResetPasswordScreen = () => {
                 <View className='flex-row gap-1 items-start'>
                   <Text style={styles.label}>
                     {t('common.confirmPassword')}
-                  </Text>{' '}
+                  </Text>
                   <Text className='text-red-500'>*</Text>
                   {errors.confirmPassword && (
                     <Text style={styles.errorText}>

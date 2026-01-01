@@ -516,7 +516,7 @@ const RegisterScreen = () => {
           {/* Sign Up Link */}
           <View style={styles.signUpContainer} className='!mb-6'>
             <Text style={styles.signUpText}>
-              {t('login.haveAccount')}{' '}
+              {t('login.haveAccount')}
             </Text>
             <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
               <Text style={styles.signUpLink}>{t('common.login')}</Text>

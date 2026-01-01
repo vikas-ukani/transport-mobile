@@ -6,14 +6,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import * as yup from 'yup';
 import { useAuth } from '../../context/AuthContext';
@@ -251,7 +251,7 @@ const LoginScreen = () => {
               {/* Sign Up Link */}
               <View style={styles.signUpContainer}>
                 <Text style={styles.signUpText}>
-                  {t('login.dontHaveAccount')}{' '}
+                  {t('login.dontHaveAccount')}
                 </Text>
                 <TouchableOpacity
                   onPress={() => router.replace('/(auth)/register')}

@@ -237,9 +237,11 @@ class ApiService {
     }
   }
 
-  async getPosts() {
+  async getPosts(params: { page: number; limit: number }) {
     try {
-      const response = await this.client.get('/posts');
+      const response = await this.client.get('/posts', {
+        params,
+      });
       return response.data;
     } catch (err: any) {
       console.log('got Catch POSTS://', err.response?.data || err.message);
@@ -283,7 +285,7 @@ class ApiService {
   async getNotifications(page = 1, limit = 20) {
     // page and limit can be customized as needed
     const response = await this.client.get('/notifications', {
-      params: { page, limit }
+      params: { page, limit },
     });
     return response.data;
   }
@@ -293,7 +295,10 @@ class ApiService {
       const response = await this.client.patch('/notifications/read-all');
       return response.data;
     } catch (err: any) {
-      console.log('got Catch markAllNotificationsRead://', err.response?.data || err.message);
+      console.log(
+        'got Catch markAllNotificationsRead://',
+        err.response?.data || err.message
+      );
     }
   }
 

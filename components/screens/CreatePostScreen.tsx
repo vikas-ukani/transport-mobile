@@ -30,8 +30,8 @@ const CreatePostScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const schema = yup.object().shape({
-    title: yup.string().required('title is required'),
-    content: yup.string(),
+    title: yup.string().required(t('common.titleRequired')),
+    content: yup.string().required(t('common.contentRequired')),
     imageIds: yup
       .array()
       .of(yup.string().required(t('common.imageOneRequired'))),
@@ -40,7 +40,7 @@ const CreatePostScreen = () => {
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty, isValid, isSubmitted },
     reset,
     setValue,
     getValues,
@@ -49,9 +49,12 @@ const CreatePostScreen = () => {
   });
 
   useEffect(() => {
-    if (id) {
-      getPost(id as string);
+    function fetchPost() {
+      if (id) {
+        getPost(id as string);
+      }
     }
+    fetchPost();
   }, [id]);
 
   const getPost = async (postId: string) => {
@@ -176,7 +179,7 @@ const CreatePostScreen = () => {
           >
             <Ionicons name='arrow-back' size={24} color='#1F2937' />
             <Text className='text-xl font-bold text-gray-900'>
-              {t('post.pageTitle')}
+              {id ? t('post.editPageTitle') : t('post.createPageTitle')}
             </Text>
           </TouchableOpacity>
 
@@ -189,9 +192,15 @@ const CreatePostScreen = () => {
         >
           {/* title */}
           <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {t('post.title')}
-            </Text>
+            <View className='flex-row gap-1 mb-3 text-sm font-bold text-gray-700'>
+              <Text>{t('post.title')} </Text>
+              <Text className='items-start text-danger'>*</Text>
+              {errors.title && (
+                <Text className='ml-1 text-sm font-medium text-red-500'>
+                  {errors.title.message}
+                </Text>
+              )}
+            </View>
             <Controller
               control={control}
               name='title'
@@ -206,18 +215,19 @@ const CreatePostScreen = () => {
                 />
               )}
             />
-            {errors.title && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-                {errors.title.message}
-              </Text>
-            )}
           </View>
 
           {/* Description */}
           <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {t('post.description')}
-            </Text>
+            <View className='flex-row gap-1 mb-3 text-sm font-bold text-gray-700'>
+              <Text> {t('post.description')} </Text>
+              <Text className='items-start text-danger'>*</Text>
+              {errors.content && (
+                <Text className='ml-1 text-sm font-medium text-red-500'>
+                  {errors.content.message}
+                </Text>
+              )}
+            </View>
             <Controller
               control={control}
               name='content'
@@ -243,9 +253,15 @@ const CreatePostScreen = () => {
 
           {/* Images */}
           <View className='mb-6'>
-            <Text className='mb-3 text-sm font-bold text-gray-700'>
-              {t('post.addImages')}
-            </Text>
+            <View className='flex-row gap-1 mb-3 text-sm font-bold text-gray-700'>
+              <Text> {t('post.addImages')} </Text>
+              <Text className='items-start text-danger'>*</Text>
+              {isSubmitted && images.length === 0 ? (
+                <Text className='ml-1 text-sm font-medium text-red-500'>
+                  {t('post.validation.imageRequired')}
+                </Text>
+              ) : null}
+            </View>
             <TouchableOpacity
               className='items-center py-8 bg-gray-50 rounded-xl border-2 border-gray-300 border-dashed'
               onPress={selectPhoto}
@@ -255,14 +271,9 @@ const CreatePostScreen = () => {
                 {t('post.addImages')}
               </Text>
               <Text className='mt-1 text-sm text-gray-400'>
-                Tap to select images
+                {t('post.tapToSelectImages')}
               </Text>
             </TouchableOpacity>
-            {images.length === 0 && (
-              <Text className='mt-2 ml-1 text-sm font-medium text-red-500'>
-                {t('common.imageOneRequired')}
-              </Text>
-            )}
             {images.length > 0 && (
               <View className='flex-row flex-wrap mt-4'>
                 {images.map((uri, index) => (
@@ -281,31 +292,22 @@ const CreatePostScreen = () => {
             )}
           </View>
 
-          <TouchableOpacity
-            className=''
-            activeOpacity={0.8}
-            onPress={handleSubmit(onSubmit)}
-            disabled={loading}
-          >
-            <View
-              className={`flex-row justify-center p-2 px-8 items-center !text-white gap-3 rounded-xl shadow-md bg-primary`}
+          <View className=''>
+            <TouchableOpacity
+              className='py-4 rounded-xl shadow-md bg-primary disabled:bg-primaryLight disabled:cursor-not-allowed'
+              onPress={handleSubmit(onSubmit)}
+              activeOpacity={0.8}
+              disabled={loading}
             >
-              {loading ? (
-                <ActivityIndicator color='#fff' size='small' />
-              ) : (
-                <>
-                  <Ionicons
-                    name='add-circle-outline'
-                    size={22}
-                    color='#FFFFFF'
-                  />
-                  <Text className='ml-2 text-lg font-bold text-center text-white'>
-                    {t('post.title')}
-                  </Text>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
+              <View className='flex-row justify-center items-center'>
+                <Ionicons name='add-circle-outline' size={22} color='#FFFFFF' />
+                <View className='ml-2 flex-row items-center gap-2 text-lg font-bold text-center !text-white'>
+                  <Text className='text-white'>{t('post.title')}</Text>
+                  {loading && <ActivityIndicator color='#fff' size='small' />}
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAwareScrollView>
     </SafeAreaView>

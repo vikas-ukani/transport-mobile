@@ -28,6 +28,11 @@ const PostItems = ({
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(
     null
   );
+  const [post, setPost] = useState<Post>(item);
+
+  useEffect(() => {
+    setPost(item);
+  }, [item]);
 
   useEffect(() => {
     return () => {
@@ -55,7 +60,16 @@ const PostItems = ({
       const res = await apiService.likePost(postId);
       if (res.success) {
         toast.success(res.message || 'Post liked successfully');
-        refetch?.();
+        setPost((prevPost) => {
+          if (!user) return prevPost;
+          const liked = prevPost.likes.includes(user.id);
+          return {
+            ...prevPost,
+            likes: liked
+              ? prevPost.likes.filter((id) => id !== user.id) // unlike
+              : [...prevPost.likes, user.id], // like
+          };
+        });
       }
     } catch (error) {
       console.error('Failed to like post:', error);
@@ -64,7 +78,7 @@ const PostItems = ({
 
   return (
     <View
-      key={item.id}
+      key={post.id}
       className='overflow-hidden !relative mb-4 bg-white rounded-xl border-2 border-gray-100 shadow'
     >
       <ConfirmPopup
@@ -84,7 +98,7 @@ const PostItems = ({
           <TouchableOpacity
             className='p-1.5 bg-purple-50 rounded-full border'
             onPress={() => {
-              router.push(`/(apps)/post/edit/${item.id}`);
+              router.push(`/(apps)/post/edit/${post.id}`);
             }}
             activeOpacity={0.8}
             accessibilityLabel='Edit vehicle'
@@ -99,7 +113,7 @@ const PostItems = ({
         {accessDelete && (
           <TouchableOpacity
             className=' bg-red-500 rounded-full p-1.5 shadow-lg '
-            onPress={() => setShowConfirmDelete(item.id)}
+            onPress={() => setShowConfirmDelete(post.id)}
             activeOpacity={0.8}
           >
             <Ionicons name='close' size={18} color='#fff' />
@@ -111,7 +125,7 @@ const PostItems = ({
           showsButtons={false}
           className='!w-full !h-96'
           horizontal
-          loop={item?.images && item?.images.length > 1}
+          loop={post?.images && post?.images.length > 1}
           dotStyle={{
             backgroundColor: '#E5E7EB',
             width: 8,
@@ -150,22 +164,22 @@ const PostItems = ({
               onPress={() =>
                 router.push({
                   pathname: `/(apps)/post/[post]`,
-                  params: { post: item.id },
+                  params: { post: post.id },
                 })
               }
               activeOpacity={0.8}
             >
               <Text className='mb-2 text-lg font-bold leading-6 text-gray-900'>
-                {item.title}
+                {post.title}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className='flex-row gap-1 items-center ml-2'
-              onPress={() => handleLikePost(item.id)} // Optional: add onPress for liking post
+              onPress={() => handleLikePost(post.id)} // Optional: add onPress for liking post
               activeOpacity={0.7}
             >
               <Text>{t('common.like')}</Text>
-              {item.likes.includes(user?.id || '') ? (
+              {post.likes.includes(user?.id || '') ? (
                 <Ionicons name='heart-sharp' size={22} color='#EF4444' />
               ) : (
                 <Ionicons name='heart-outline' size={22} color='#EF4444' />
@@ -177,17 +191,17 @@ const PostItems = ({
           <View className='flex-row items-center'>
             <Ionicons name='person-circle-outline' size={20} color='#6B7280' />
             <Text className='ml-1 text-sm font-medium text-gray-600'>
-              {item.user?.name ?? 'Admin'}
+              {post.user?.name ?? 'Admin'}
             </Text>
           </View>
           <View className='flex-row items-center'>
             <Ionicons name='time-outline' size={14} color='#9CA3AF' />
             <Text className='ml-1 text-sm text-gray-500'>
-              {`${new Date(item.createdAt).toLocaleDateString(undefined, {
+              {`${new Date(post.createdAt).toLocaleDateString(undefined, {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
-              })} ${new Date(item.createdAt).toLocaleTimeString(undefined, {
+              })} ${new Date(post.createdAt).toLocaleTimeString(undefined, {
                 hour: '2-digit',
                 minute: '2-digit',
               })}`}

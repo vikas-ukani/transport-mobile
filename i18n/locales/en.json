@@ -51,7 +51,12 @@
     "imageOneRequired": "Please upload at least one image",
     "languageChanged": "Language changed successfully",
     "bookVehicle": "Book Vehicle",
-    "thankYou": "Thank You"
+    "thankYou": "Thank You",
+    "titleRequired": "Title is required",
+    "contentRequired": "Content is required.",
+    "seeAll": "See all",
+    "showMore": "Show More",
+    "updatePost": "Update Post"
   },
   "login": {
     "title": "Welcome Back",
@@ -190,14 +195,17 @@
   },
   "post": {
     "pageTitle": "Create Post",
-    "title": "title",
+    "title": "Title",
     "description": "Description",
     "addImages": "Add Images",
     "post": "Post",
     "validation": {
       "titleRequired": "title is required",
       "imageRequired": "At least one image is required"
-    }
+    },
+    "createPageTitle": "Create post",
+    "editPageTitle": "Update post",
+    "tapToSelectImages": "Tap to choose images"
   },
   "postDetail": {
     "title": "Post Details",

@@ -43,6 +43,7 @@ const HomeScreen = () => {
 
   const [videos, setVideos] = useState<any[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   // Load posts on mount
@@ -78,18 +79,44 @@ const HomeScreen = () => {
     }
   };
 
-  const loadPosts = async () => {
+  // Pagination with "Load More" feature
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const POSTS_PER_PAGE = 10;
+
+  const loadPosts = async (pageNumber: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
-      const res = await apiService.getPosts();
+      if (pageNumber === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const res = await apiService.getPosts({
+        page: pageNumber,
+        limit: POSTS_PER_PAGE,
+      });
       if (res.success) {
-        setPosts(res.data);
+        setTotal(res?.pagination?.total || 0);
+        if (append) {
+          setPosts((prev) => [...prev, ...(res.data || [])]);
+        } else {
+          setPosts(res.data || []);
+        }
+        setPage(pageNumber);
       }
     } catch (error: any) {
-      // Fallback to mock data
-      setPosts([]);
+      if (!append) setPosts([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Function to load more posts for pagination
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      loadPosts(page + 1, true);
     }
   };
 
@@ -154,7 +181,7 @@ const HomeScreen = () => {
               onPress={() => router.push('/(apps)/my-posts')}
             >
               <Text className='text-sm font-semibold text-primary'>
-                See All
+                {t('common.seeAll')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -162,7 +189,7 @@ const HomeScreen = () => {
             <View className='items-center p-12 bg-white rounded-xl shadow-sm'>
               <ActivityIndicator size='large' color='#3B82F6' />
               <Text className='mt-4 font-medium text-gray-500'>
-                Loading posts...
+                Loading ...
               </Text>
             </View>
           ) : posts?.length > 0 ? (
@@ -192,6 +219,18 @@ const HomeScreen = () => {
                 {t('home.noPosts')}
               </Text>
             </View>
+          )}
+          {/* Show More button for pagination */}
+          {posts?.length > 0 && posts.length < total && (
+            <TouchableOpacity
+              className='justify-center items-center px-6 py-6 mt-4 rounded-lg bg-primary'
+              activeOpacity={0.8}
+              onPress={handleLoadMore}
+            >
+              <Text className='text-base font-semibold text-white'>
+                {t('common.showMore')}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>

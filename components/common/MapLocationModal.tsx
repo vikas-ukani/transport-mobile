@@ -83,7 +83,7 @@ const MapLocationModal = ({
         } catch (err) {
           lastError = err;
           if (attempt === 2) throw err;
-          await new Promise(r => setTimeout(r, 500)); // wait before retry
+          await new Promise((r) => setTimeout(r, 500)); // wait before retry
         }
       }
 
@@ -142,6 +142,7 @@ const MapLocationModal = ({
             getAddress(latitude, longitude);
           }
         } catch (error) {
+          toast.dismiss();
           toast.error('Error accessing location services.');
           console.error('Error getting location:', error);
         }
