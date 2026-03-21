@@ -7,32 +7,8 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "CFBundleLocalizations": [
-          "gu",
-          "en",
-          "hi"
-        ]
-      },
-      "bundleIdentifier": "com.vikasdev.transport"
-    },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
       "package": "com.vikasdev.transport"
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -48,41 +24,14 @@
           }
         }
       ],
-      [
-        "expo-localization",
-        {
-          "supportedLocales": {
-            "ios": [
-              "gu",
-              "en",
-              "hi"
-            ],
-            "android": [
-              "gu",
-              "en",
-              "hi"
-            ]
-          }
-        }
-      ],
       "expo-build-properties"
     ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    },
+
     "extra": {
       "router": {},
       "eas": {
         "projectId": "cb3bde16-7906-41ce-a99a-e15400c4a587"
       }
-    },
-    "owner": "vikas-devv",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/f50a1386-5e23-4bb4-aca3-d9aa71d9629f"
     }
   }
 }

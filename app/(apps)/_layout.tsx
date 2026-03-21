@@ -1,19 +1,24 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
+import { Platform } from "react-native";
+import UserGPSUpdate from "../../components/common/UserGPSUpdate";
 
 export default function RootLayout() {
+  // Notifications.registerRemoteNotifications();
+
   return (
     <>
+      {Platform.OS !== "web" && <UserGPSUpdate />}
       <Stack
         screenOptions={{
           headerShown: false,
           statusBarHidden: false,
-          statusBarAnimation: 'slide',
-          statusBarStyle: 'dark',
+          statusBarAnimation: "slide",
+          statusBarStyle: "dark",
         }}
       >
-        <Stack.Screen name='index' options={{ title: 'Home Page' }} />
-        {/* <Stack.Screen name='create-post' options={{ title: 'Create Post' }} /> */}
-        <Stack.Screen name='notifications' />
+        <Stack.Screen name="index" options={{ title: "Home Page" }} />
+        {/* <Stack.Screen name="book-vehicle" /> */}
+        {/* <Stack.Screen name="notifications" /> */}
       </Stack>
     </>
   );

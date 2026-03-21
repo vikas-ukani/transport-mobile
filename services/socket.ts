@@ -1,9 +1,35 @@
-import { io, Socket } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Application from "expo-application";
+import { Platform } from "react-native";
+import { io, Socket } from "socket.io-client";
+import { getBaseUrl } from "./api.service";
 
-const SOCKET_URL = __DEV__ 
-  ? 'http://localhost:3000' 
-  : 'https://api.yourdomain.com';
+const DEVICE_ID_KEY = "@device_id";
+
+async function getDeviceId(): Promise<string> {
+  try {
+    if (Platform.OS === "android") {
+      return Application.getAndroidId() ?? (await getOrCreateStoredDeviceId());
+    }
+    if (Platform.OS === "ios") {
+      const id = await Application.getIosIdForVendorAsync();
+      if (id) return id;
+      return await getOrCreateStoredDeviceId();
+    }
+  } catch {
+    // fallback if expo-application fails (e.g. on web)
+  }
+  return getOrCreateStoredDeviceId();
+}
+
+async function getOrCreateStoredDeviceId(): Promise<string> {
+  let id = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = `web-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    await AsyncStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
 
 class SocketService {
   private socket: Socket | null = null;
@@ -13,30 +39,32 @@ class SocketService {
     if (this.socket?.connected) {
       return;
     }
+    const deviceId = await getDeviceId();
 
-    const token = await AsyncStorage.getItem('authToken');
-    
-    this.socket = io(SOCKET_URL, {
+    const token = await AsyncStorage.getItem("authToken");
+    console.log("connecting socket it", getBaseUrl());
+    this.socket = io(getBaseUrl(), {
       auth: {
         token,
+        deviceId: deviceId,
       },
-      transports: ['websocket'],
+      transports: ["websocket"],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
     });
 
-    this.socket.on('connect', () => {
-      console.log('Socket connected');
-      this.emit('user:online');
+    this.socket.on("connect", () => {
+      console.log("Socket connected");
+      this.emit("user:online");
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    this.socket.on("disconnect", () => {
+      console.log("Socket disconnected");
     });
 
-    this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
+    this.socket.on("error", (error) => {
+      console.error("Socket error:", error);
     });
 
     // Set up default listeners
@@ -47,26 +75,26 @@ class SocketService {
     if (!this.socket) return;
 
     // Booking updates
-    this.socket.on('booking:created', (data) => {
-      this.notifyListeners('booking:created', data);
+    this.socket.on("booking:created", (data) => {
+      this.notifyListeners("booking:created", data);
     });
 
-    this.socket.on('booking:updated', (data) => {
-      this.notifyListeners('booking:updated', data);
+    this.socket.on("booking:updated", (data) => {
+      this.notifyListeners("booking:updated", data);
     });
 
-    this.socket.on('booking:matched', (data) => {
-      this.notifyListeners('booking:matched', data);
+    this.socket.on("booking:matched", (data) => {
+      this.notifyListeners("booking:matched", data);
     });
 
     // Notifications
-    this.socket.on('notification:new', (data) => {
-      this.notifyListeners('notification:new', data);
+    this.socket.on("notification:new", (data) => {
+      this.notifyListeners("notification:new", data);
     });
 
     // Vehicle updates
-    this.socket.on('vehicle:verified', (data) => {
-      this.notifyListeners('vehicle:verified', data);
+    this.socket.on("vehicle:verified", (data) => {
+      this.notifyListeners("vehicle:verified", data);
     });
   }
 
@@ -111,7 +139,7 @@ class SocketService {
   private notifyListeners(event: string, data: any) {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
-      callbacks.forEach(callback => callback(data));
+      callbacks.forEach((callback) => callback(data));
     }
   }
 
@@ -130,4 +158,3 @@ class SocketService {
 
 export const socketService = new SocketService();
 export default socketService;
-

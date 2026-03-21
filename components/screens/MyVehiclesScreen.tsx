@@ -31,7 +31,7 @@ interface Vehicle {
   truckLength: string;
   loadCapacity: string;
   truckHeight: string;
-  rcPhoto: string;
+  rcPhotos: string;
   rating: number;
   travelled: string;
   status: 'verified' | 'pending';

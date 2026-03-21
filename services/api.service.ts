@@ -1,14 +1,14 @@
-import { toast } from '@backpackapp-io/react-native-toast';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { AxiosError, AxiosInstance } from 'axios';
-import { router } from 'expo-router';
-import { Platform } from 'react-native';
-import socketService from './socket';
+import { toast } from "@backpackapp-io/react-native-toast";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios, { AxiosError, AxiosInstance } from "axios";
+import { router } from "expo-router";
+import { Platform } from "react-native";
+import socketService from "./socket";
 
 export const getBaseUrl = () => {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     // Perform web-specific actions
-    return 'http://0.0.0.0:8080';
+    return "http://0.0.0.0:8080";
   }
 
   return process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -25,14 +25,14 @@ class ApiService {
   private client: AxiosInstance;
 
   constructor() {
-    console.log('getApiUrl()', getApiUrl());
+    console.log("getApiUrl()", getApiUrl());
     this.client = axios.create({
       baseURL: getApiUrl(),
       timeout: 30000,
       headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        accept: 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        accept: "application/json",
       },
     });
 
@@ -43,47 +43,47 @@ class ApiService {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       async (config: any) => {
-        const token = await AsyncStorage.getItem('authToken');
+        const token = await AsyncStorage.getItem("authToken");
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
-          config.headers['Content-Type'] = 'application/json';
-          config.headers['Accept'] = 'application/json';
+          config.headers["Content-Type"] = "application/json";
+          config.headers["Accept"] = "application/json";
         }
         return config;
       },
-      (error: any) => Promise.reject(error)
+      (error: any) => Promise.reject(error),
     );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response: any) => response,
       async (error: AxiosError) => {
-        console.log('API Crash Res:: ', error.response?.data);
+        console.log("API Crash Res:: ", error.response?.data);
         const resData: any = error.response?.data;
         if (
-          error.response?.status === 401 ||
-          resData?.detail === 'Not authenticated'
+          // error.response?.status === 401 ||
+          resData?.detail === "Not authenticated"
         ) {
           // Token expired or invalid
-          if ((await AsyncStorage.getItem('authToken')) !== null) {
-            await AsyncStorage.removeItem('authToken');
+          if ((await AsyncStorage.getItem("authToken")) !== null) {
+            await AsyncStorage.removeItem("authToken");
           }
-          if ((await AsyncStorage.getItem('user')) !== null) {
-            await AsyncStorage.removeItem('user');
+          if ((await AsyncStorage.getItem("user")) !== null) {
+            await AsyncStorage.removeItem("user");
           }
           socketService.disconnect();
           // redirecting to login page
-          router.push('/login');
+          router.push("/login");
         }
         return Promise.reject(error.response?.data || error.message);
-      }
+      },
     );
   }
 
   // Auth endpoints
   async me() {
     try {
-      const response = await this.client.get('/me');
+      const response = await this.client.get("/me");
       return response.data;
     } catch (error: any) {
       return error.response.data;
@@ -93,24 +93,24 @@ class ApiService {
   // Auth endpoints
   async login(email: string, password: string) {
     try {
-      const response = await this.client.post('/signin', {
+      const response = await this.client.post("/auth/signin", {
         email: email,
         password,
       });
       return response.data;
     } catch (err: any) {
-      console.error('Login Error: ', err.message);
-      return { error: 'Login failed. Please check your credentials.' };
+      console.error("Login Error: ", err.message);
+      return { error: "Login failed. Please check your credentials." };
     }
   }
 
   async forgotPassword(email: string) {
-    const res = await this.client.post('/forgot-password', { email });
+    const res = await this.client.post("/auth/forgot-password", { email });
     return res.data;
   }
 
   async resetPassword(new_password: string, token: string) {
-    const res = await this.client.post('/reset-password', {
+    const res = await this.client.post("/auth/reset-password", {
       new_password,
       token,
     });
@@ -118,17 +118,17 @@ class ApiService {
   }
 
   async register(userData: any) {
-    const response = await this.client.post('/register', userData);
+    const response = await this.client.post("/auth/register", userData);
     return response.data;
   }
 
   async sendOTP(mobile: string) {
-    const response = await this.client.post('/auth/send-otp', { mobile });
+    const response = await this.client.post("/auth/send-otp", { mobile });
     return response.data;
   }
 
   async verifyOTP(mobile: string, otp: string) {
-    const response = await this.client.post('/auth/verify-otp', {
+    const response = await this.client.post("/auth/verify-otp", {
       mobile,
       otp,
     });
@@ -136,12 +136,12 @@ class ApiService {
   }
 
   async sendEmailOTP(email: string) {
-    const response = await this.client.post('/auth/email-send-otp', { email });
+    const response = await this.client.post("/auth/email-send-otp", { email });
     return response.data;
   }
 
   async verifyEmailOTP(email: string, otp: string) {
-    const response = await this.client.post('/auth/email-verify-otp', {
+    const response = await this.client.post("/auth/email-verify-otp", {
       email,
       otp,
     });
@@ -151,8 +151,8 @@ class ApiService {
   async userPartialUpdate(id: string, user: any) {
     try {
       const response = await this.client.put(
-        '/users/partial-update/' + id,
-        user
+        "/users/partial-update/" + id,
+        user,
       );
       return response.data;
     } catch (err: any) {
@@ -163,7 +163,7 @@ class ApiService {
   // Booking endpoints
   async createBooking(bookingData: any) {
     try {
-      const response = await this.client.post('/bookings', bookingData);
+      const response = await this.client.post("/bookings", bookingData);
       return response.data;
     } catch (err: any) {
       throw new Error(err.response?.data || err.message);
@@ -172,19 +172,32 @@ class ApiService {
 
   async getMyBookings({ page, limit }: { page: number; limit: number }) {
     const response = await this.client.get(
-      `/bookings?page=${page}&limit=${limit}`
+      `/bookings?page=${page}&limit=${limit}`,
     );
     return response.data;
   }
 
+  async getBookingById(id: string) {
+    const response = await this.client.get(`/booking/${id}`);
+    return response.data;
+  }
+
   async getBookingHistory() {
-    const response = await this.client.get('/bookings/history');
+    const response = await this.client.get("/bookings/history");
+    return response.data;
+  }
+
+  async getDriverRides({ page, limit }: { page: number; limit: number }) {
+    console.log("calling driver rides");
+    const response = await this.client.get(
+      `/driver-rides?page=${page}&limit=${limit}`,
+    );
     return response.data;
   }
 
   // Vehicle endpoints
   async registerVehicle(vehicleData: any) {
-    const response = await this.client.post('/vehicles', vehicleData);
+    const response = await this.client.post("/vehicles", vehicleData);
     return response.data;
   }
 
@@ -195,7 +208,7 @@ class ApiService {
   }
 
   async getVehicles() {
-    const response = await this.client.get('/vehicles');
+    const response = await this.client.get("/vehicles");
     return response.data;
   }
 
@@ -212,7 +225,7 @@ class ApiService {
   // Post endpoints
   async createPost(postData: any) {
     try {
-      const response = await this.client.post('/posts', postData);
+      const response = await this.client.post("/posts", postData);
       return response.data;
     } catch (err: any) {
       throw new Error(err.response?.data || err.message);
@@ -221,7 +234,7 @@ class ApiService {
   // Update
   async updatePost(postData: any, id: string) {
     try {
-      const response = await this.client.put('/posts/' + id, postData);
+      const response = await this.client.put("/posts/" + id, postData);
       return response.data;
     } catch (err: any) {
       throw new Error(err.response?.data || err.message);
@@ -230,7 +243,7 @@ class ApiService {
 
   async getVideos() {
     try {
-      const response = await this.client.get('/videos');
+      const response = await this.client.get("/videos");
       return response.data;
     } catch (err: any) {
       throw new Error(err.response?.data || err.message);
@@ -239,36 +252,36 @@ class ApiService {
 
   async getPosts(params: { page: number; limit: number }) {
     try {
-      const response = await this.client.get('/posts', {
+      const response = await this.client.get("/posts", {
         params,
       });
       return response.data;
     } catch (err: any) {
-      console.log('got Catch POSTS://', err.response?.data || err.message);
+      console.log("got Catch POSTS://", err.response?.data || err.message);
     }
   }
   async likePost(id: string) {
     try {
-      const response = await this.client.get('/like-post/' + id);
+      const response = await this.client.get("/like-post/" + id);
       return response.data;
     } catch (err: any) {
-      console.log('got Catch POSTS://', err.response?.data || err.message);
+      console.log("got Catch POSTS://", err.response?.data || err.message);
     }
   }
   async getMyPosts() {
     try {
-      const response = await this.client.get('/my-posts');
+      const response = await this.client.get("/my-posts");
       return response.data;
     } catch (err: any) {
-      console.log('got Catch POSTS://', err.response?.data || err.message);
+      console.log("got Catch POSTS://", err.response?.data || err.message);
     }
   }
   async getPostById(id: string) {
     try {
-      const response = await this.client.get('/posts/' + id);
+      const response = await this.client.get("/posts/" + id);
       return response.data;
     } catch (err: any) {
-      console.log('got Catch POSTS://', err.response?.data || err.message);
+      console.log("got Catch POSTS://", err.response?.data || err.message);
     }
   }
 
@@ -277,14 +290,14 @@ class ApiService {
       const response = await this.client.delete(`/posts/${postId}`);
       return response.data;
     } catch (err: any) {
-      console.log('got Catch POSTS://', err.response?.data || err.message);
+      console.log("got Catch POSTS://", err.response?.data || err.message);
     }
   }
 
   // Notification endpoints
   async getNotifications(page = 1, limit = 20) {
     // page and limit can be customized as needed
-    const response = await this.client.get('/notifications', {
+    const response = await this.client.get("/notifications", {
       params: { page, limit },
     });
     return response.data;
@@ -292,26 +305,26 @@ class ApiService {
 
   async markAllNotificationsRead() {
     try {
-      const response = await this.client.patch('/notifications/read-all');
+      const response = await this.client.patch("/notifications/read-all");
       return response.data;
     } catch (err: any) {
       console.log(
-        'got Catch markAllNotificationsRead://',
-        err.response?.data || err.message
+        "got Catch markAllNotificationsRead://",
+        err.response?.data || err.message,
       );
     }
   }
 
   async markNotificationRead(notificationId: string) {
     const response = await this.client.patch(
-      `/notifications/${notificationId}/read`
+      `/notifications/${notificationId}/read`,
     );
     return response.data;
   }
 
   // Payment endpoints
   async createPaymentIntent(amount: number, vehicleId: string) {
-    const response = await this.client.post('/payments/create-intent', {
+    const response = await this.client.post("/payments/create-intent", {
       amount,
       vehicleId,
     });
@@ -327,18 +340,18 @@ class ApiService {
    * @returns Upload response from the backend
    */
   // async uploadImage(uri: string, type: 'profile' | 'vehicle' | 'post') {
-  async uploadImage(fileUri: string, type: 'profile' | 'vehicle' | 'post') {
-    const filename: any = fileUri.split('/').pop();
+  async uploadImage(fileUri: string, type: "profile" | "vehicle" | "post") {
+    const filename: any = fileUri.split("/").pop();
     const match = /\.(\w+)$/.exec(filename);
     const typeE = match ? `image/${match[1]}` : `image`;
 
-    const name = `${type}_` + fileUri.split('/').pop() || `${Date.now()}.jpg`;
+    const name = `${type}_` + fileUri.split("/").pop() || `${Date.now()}.jpg`;
     let formData = new FormData();
 
-    formData.append('file', {
+    formData.append("file", {
       uri: fileUri,
       name,
-      type: typeE || 'image/jpeg',
+      type: typeE || "image/jpeg",
     } as any);
 
     const { data: resData } = await axios.post(
@@ -346,9 +359,9 @@ class ApiService {
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
     if (resData.success) {
       return resData;

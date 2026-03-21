@@ -56,7 +56,16 @@
     "contentRequired": "Content is required.",
     "seeAll": "See all",
     "showMore": "Show More",
-    "updatePost": "Update Post"
+    "updatePost": "Update Post",
+    "pickLocation": "Pick location",
+    "pickDate": "Pick date",
+    "moveMarkerToSelectLocation": "Move marker to choose location",
+    "selectAddress": "Selected Address",
+    "pleaseEnableLocation": "Please enable gps location.",
+    "failedToFetchBookingDetails": "\"Failed to fetch booking details\"",
+    "BookingRequestSubmited": "Booking request submitted successfully",
+    "bookingFailed": "\"Booking failed\"",
+    "rides": "Rides"
   },
   "login": {
     "title": "Welcome Back",
@@ -148,7 +157,13 @@
       "weightRequired": "Material weight is required",
       "lengthRequired": "Truck length is required",
       "heightRequired": "Truck height is required"
-    }
+    },
+    "driverNotes": "Driver Notes",
+    "driverNotesPlaceholder": "Enter driver notes",
+    "availableRides": "Available Rides",
+    "estimatedKm": "Estimated KMs.",
+    "bookRide": "Book Ride",
+    "noRides": "No Rides available"
   },
   "vehicles": {
     "title": "Vehicle Registration",
@@ -191,7 +206,10 @@
       "capacityRequired": "Load capacity is required",
       "heightRequired": "Truck height is required"
     },
-    "myVehicles": "My Vehicles"
+    "myVehicles": "My Vehicles",
+    "pleaseUploadAtLeastOneRCBookPhoto": "Please upload at least one RC Book photo.",
+    "pleaseUploadAtLeastOneTruckPhoto": "Please upload at least one truck photo.",
+    "registrationSubmitted": "\"Vehicle registration submitted. Verification may take up to 2 days.\""
   },
   "post": {
     "pageTitle": "Create Post",

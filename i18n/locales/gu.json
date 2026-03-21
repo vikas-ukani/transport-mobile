@@ -56,7 +56,16 @@
     "contentRequired": "સામગ્રી જરૂરી છે.",
     "seeAll": "બધા જુઓ",
     "showMore": "વધુ બતાવો",
-    "updatePost": "પોસ્ટ અપડેટ કરો"
+    "updatePost": "પોસ્ટ અપડેટ કરો",
+    "pickLocation": "સ્થાન પસંદ કરો",
+    "pickDate": "તારીખ પસંદ કરો",
+    "moveMarkerToSelectLocation": "સ્થાન પસંદ કરવા માટે માર્કર ખસેડો",
+    "selectAddress": "પસંદ કરેલ સરનામું",
+    "pleaseEnableLocation": "કૃપા કરીને જીપીએસ સ્થાન સક્ષમ કરો.",
+    "failedToFetchBookingDetails": "\"બુકિંગ વિગતો મેળવવામાં નિષ્ફળ\"",
+    "BookingRequestSubmited": "બુકિંગ વિનંતી સફળતાપૂર્વક સબમિટ થઈ",
+    "bookingFailed": "\"બુકિંગ નિષ્ફળ થયું\"",
+    "rides": "સવારી"
   },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",
@@ -148,7 +157,13 @@
     "selectToLocation": "સ્થાન પસંદ કરો",
     "fromLocation": "સ્થાન પરથી",
     "selectFromLocation": "સ્થાનમાંથી પસંદ કરો",
-    "toLocation": "સ્થાન માટે"
+    "toLocation": "સ્થાન માટે",
+    "driverNotes": "ડ્રાઈવર નોંધો",
+    "driverNotesPlaceholder": "ડ્રાઇવર નોંધો દાખલ કરો",
+    "availableRides": "ઉપલબ્ધ રાઇડ્સ",
+    "estimatedKm": "અંદાજિત KMs.",
+    "bookRide": "બુક રાઈડ",
+    "noRides": "કોઈ રાઈડ ઉપલબ્ધ નથી"
   },
   "vehicles": {
     "title": "વાહન નોંધણી",
@@ -191,7 +206,10 @@
     "vehicleDeleted": "વાહન સફળતાપૂર્વક કાઢી નાખવામાં આવ્યું",
     "kilometer": "કિલોમીટર",
     "estimatedPrice": "અંદાજિત કિંમત",
-    "estimatedKilometer": "અંદાજિત કિલોમીટર"
+    "estimatedKilometer": "અંદાજિત કિલોમીટર",
+    "pleaseUploadAtLeastOneRCBookPhoto": "કૃપા કરીને ઓછામાં ઓછો એક આરસી બુક ફોટો અપલોડ કરો.",
+    "pleaseUploadAtLeastOneTruckPhoto": "કૃપા કરીને ઓછામાં ઓછો એક ટ્રકનો ફોટો અપલોડ કરો.",
+    "registrationSubmitted": "\"વાહન નોંધણી સબમિટ. ચકાસણીમાં 2 દિવસ જેટલો સમય લાગી શકે છે.\""
   },
   "post": {
     "pageTitle": "પોસ્ટ બનાવો",

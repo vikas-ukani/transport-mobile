@@ -1,13 +1,12 @@
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { RefreshControl } from 'react-native-gesture-handler';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useTranslation } from 'react-i18next';
-import apiService from '../../services/api.service';
-
+import { useTranslation } from "react-i18next";
+import apiService from "../../services/api.service";
 
 interface Booking {
   id: string;
@@ -50,7 +49,6 @@ interface Booking {
 const MyBookingScreen = () => {
   const { t } = useTranslation();
 
-
   const [bookings, setBookings] = useState<Booking[] | []>([]);
   const [loading, setLoading] = useState(false);
   // Pagination state
@@ -78,12 +76,12 @@ const MyBookingScreen = () => {
         setHasMore(newBookings.length >= 10);
 
         setBookings((prev) =>
-          pageNum === 1 || !append ? newBookings : [...prev, ...newBookings]
+          pageNum === 1 || !append ? newBookings : [...prev, ...newBookings],
         );
         setPage(pageNum);
       }
     } catch (error) {
-      console.error('Failed to fetch bookings:', error);
+      console.error("Failed to fetch bookings:", error);
       return [];
     } finally {
       setLoading(false);
@@ -105,35 +103,35 @@ const MyBookingScreen = () => {
   });
 
   return (
-    <SafeAreaView className='flex-1 bg-gray-50'>
-      <View className='flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
-        <Text className='text-xl font-bold text-gray-900'>
-          {t('booking.myBookings')}
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
+        <Text className="text-xl font-bold text-gray-900">
+          {t("booking.myBookings")}
         </Text>
 
         <TouchableOpacity
-          className=''
+          className=""
           activeOpacity={0.8}
           onPress={() =>
-            router.push('/(apps)/book-vehicle', {
-              screen: 'MainTabs',
-              params: { screen: 'CreateBookVehicle' },
+            router.push("/(apps)/book-vehicle", {
+              screen: "MainTabs",
+              params: { screen: "CreateBookVehicle" },
             } as any)
           }
         >
           <View
             className={`flex-row p-2 px-8 items-center !text-white gap-3 rounded-xl shadow-md bg-primary`}
           >
-            <Ionicons name='add-circle-outline' size={22} color='white' />
-            <Text className='text-lg font-semibold !text-white'>
-              {t('booking.title')}
+            <Ionicons name="add-circle-outline" size={22} color="white" />
+            <Text className="text-lg font-semibold !text-white">
+              {t("booking.title")}
             </Text>
           </View>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        className='flex-1 px-5 py-5'
+        className="flex-1 px-5 py-5"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={onRefresh} />
@@ -142,143 +140,173 @@ const MyBookingScreen = () => {
         {filteredBookings.length > 0 ? (
           filteredBookings.map((booking: Booking) => (
             <View
-              key={`booking-${booking.id}-${booking.createdAt ?? ''}`}
-              className='p-5 mb-4 bg-white rounded-xl border border-gray-100 shadow-md'
+              key={`booking-${booking.id}-${booking.createdAt ?? ""}`}
+              className="p-5 mb-4 bg-white rounded-xl border border-gray-100 shadow-md"
             >
-              <View className='flex-row justify-between items-start mb-4'>
-                <View className='flex-1 mr-3'>
-                  <View className='flex-row items-center mb-2'>
+              <View className="flex-row justify-between items-start mb-4">
+                <View className="flex-1 mr-3">
+                  <View className="flex-row items-center mb-2">
                     <Ionicons
-                      name='location'
+                      name="location"
                       size={18}
-                      className='!text-primary'
+                      className="!text-primary"
                     />
                     <Text
-                      className='ml-2 text-base font-bold text-gray-900'
+                      className="ml-2 text-base font-bold text-gray-900"
                       numberOfLines={1}
                     >
                       {booking?.fromAddress}
                     </Text>
                   </View>
-                  <View className='flex-row items-center'>
+                  <View className="flex-row items-center">
                     <Ionicons
-                      name='location'
+                      name="location"
                       size={18}
-                      className='!text-primaryLight/50'
+                      className="!text-primaryLight/50"
                     />
                     <Text
-                      className='ml-2 text-base font-bold text-gray-900'
+                      className="ml-2 text-base font-bold text-gray-900"
                       numberOfLines={1}
                     >
                       {booking.toAddress}
                     </Text>
                   </View>
                 </View>
-                <View
-                  className={`px-3 py-1.5 !rounded-lg ${
-                    booking.status === 'success'
-                      ? 'bg-green-100'
-                      : booking.status === 'finished'
-                      ? ' !rounded-lg bg-primary/30'
-                      : 'bg-yellow-100'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
-                      booking.status === 'success'
-                        ? 'text-green-700'
-                        : booking.status === 'finished'
-                        ? 'text-primary'
-                        : 'text-yellow-700'
-                    }`}
-                  >
-                    {booking.status.toUpperCase()}
-                  </Text>
-                </View>
               </View>
-              <View className='flex-row gap-2'>
-                <View className='pt-4 space-y-2 border-t border-gray-100'>
+              <View className="flex-row gap-2 justify-between">
+                <View className="pt-4 space-y-2 border-t border-gray-100">
                   {/* Truck Type */}
-                  <View className='flex-row items-center'>
+                  <View className="flex-row items-center">
                     <FontAwesome5
                       name={
-                        booking.bodyType?.toLowerCase() === 'open'
-                          ? 'truck'
-                          : booking.bodyType?.toLowerCase() === 'container'
-                          ? 'truck-moving'
-                          : 'truck-pickup'
+                        booking.bodyType?.toLowerCase() === "open"
+                          ? "truck"
+                          : booking.bodyType?.toLowerCase() === "container"
+                            ? "truck-moving"
+                            : "truck-pickup"
                       }
                       size={16}
-                      color='#6B7280'
+                      color="#6B7280"
                       style={{ marginRight: 5 }}
                     />
-                    <Text className='text-sm font-medium text-gray-600'>
+                    <Text className="text-sm font-medium text-gray-600">
                       {booking.truckType} • {booking.bodyType}
                     </Text>
                   </View>
                   {/* Truck Height */}
-                  <View className='flex-row gap-8 items-center mt-3'>
-                    <View className='flex-row items-center'>
+                  <View className="flex-row gap-8 items-center mt-3">
+                    <View className="flex-row items-center">
                       <Ionicons
-                        name='resize-outline'
+                        name="resize-outline"
                         size={18}
-                        color='#6B7280'
+                        color="#6B7280"
                       />
-                      <Text className='ml-2 text-sm font-medium text-gray-600'>
+                      <Text className="ml-2 text-sm font-medium text-gray-600">
                         {booking.truckHeight
                           ? `${booking.truckHeight} feet`
-                          : t('vehicles.notMentioned')}
+                          : t("vehicles.notMentioned")}
                       </Text>
                     </View>
                     {/* Truck Width */}
-                    <View className='flex-row items-center'>
-                      <Ionicons name='resize-sharp' size={18} color='#6B7280' />
-                      <Text className='ml-2 text-sm font-medium text-gray-600'>
+                    <View className="flex-row items-center">
+                      <Ionicons name="resize-sharp" size={18} color="#6B7280" />
+                      <Text className="ml-2 text-sm font-medium text-gray-600">
                         {booking.truckLength
                           ? `${booking.truckLength} feet`
-                          : t('vehicles.notMentioned')}
+                          : t("vehicles.notMentioned")}
                       </Text>
                     </View>
                   </View>
-                  <View className='flex-row gap-8 items-center mt-3'>
+                  <View className="flex-row gap-8 items-center mt-3">
                     {/* Traveled Distance */}
-                    <View className='flex-row items-center'>
+                    <View className="flex-row items-center">
                       <Ionicons
-                        name='speedometer-outline'
+                        name="speedometer-outline"
                         size={18}
-                        color='#6B7280'
+                        color="#6B7280"
                       />
-                      <Text className='ml-2 text-sm font-medium text-gray-600'>
-                        {booking.estimatedKm}
+                      <Text className="ml-2 text-sm font-medium text-gray-600">
+                        {booking.estimatedKm} km
                       </Text>
                     </View>
                     {/* Load Capacity */}
-                    <View className='flex-row items-center'>
-                      <Ionicons name='cube-outline' size={18} color='#6B7280' />
-                      <Text className='ml-2 text-sm font-medium text-gray-600'>
+                    <View className="flex-row items-center">
+                      <Ionicons name="cube-outline" size={18} color="#6B7280" />
+                      <Text className="ml-2 text-sm font-medium text-gray-600">
                         {booking.loadCapacity
                           ? `${booking.loadCapacity} kg`
-                          : t('vehicles.unknownLoadCapacity')}
+                          : t("vehicles.unknownLoadCapacity")}
                       </Text>
                     </View>
                   </View>
                 </View>
-                <View className='flex-row items-center mt-3'>
-                  <Text className='text-base font-semibold text-gray-600'>
-                    {t('vehicles.estimatedKilometer')}
-                  </Text>
-                  <Text className='mt-1 text-2xl font-bold text-primary'>
-                    {booking.estimatedKm}
-                  </Text>
+                <View className="flex-col gap-1 justify-evenly">
+                  <View
+                    className={`px-3 py-1.5 !rounded-lg ${
+                      booking.status === "success"
+                        ? "bg-green-100"
+                        : booking.status === "finished"
+                          ? " !rounded-lg bg-primary/30"
+                          : "bg-yellow-100"
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        booking.status === "success"
+                          ? "text-green-700"
+                          : booking.status === "finished"
+                            ? "text-primary"
+                            : "text-yellow-700"
+                      }`}
+                    >
+                      {booking.status.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View className="flex-row gap-3 justify-end mt-2">
+                    {/* Edit button */}
+                    {["pending"].includes(booking.status) && (
+                      <TouchableOpacity
+                        className="p-2 bg-purple-50 rounded-full"
+                        onPress={() => {
+                          router.push(`/(apps)/bookings/${booking.id}`);
+                          // Implement your edit logic here (e.g., open edit modal/page)
+                          // Example: router.push(`/edit-vehicle/${item.id}`)
+                        }}
+                        activeOpacity={0.8}
+                        accessibilityLabel="Edit vehicle"
+                      >
+                        <Ionicons
+                          name="create-outline"
+                          size={20}
+                          className="text-primary"
+                        />
+                      </TouchableOpacity>
+                    )}
+
+                    {["pending"].includes(booking.status) && (
+                      <TouchableOpacity
+                        className="p-2 bg-red-50 rounded-full"
+                        // onPress={() => setShowConfirmDelete(item.id)}
+                        activeOpacity={0.8}
+                        accessibilityLabel="Delete vehicle"
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={20}
+                          color="#EF4444"
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
           ))
         ) : (
-          <View className='items-center py-16'>
-            <Ionicons name='document-text-outline' size={64} color='#D1D5DB' />
-            <Text className='mt-4 text-base font-medium text-gray-500'>
-              {t('booking.noBookings')}
+          <View className="items-center py-16">
+            <Ionicons name="document-text-outline" size={64} color="#D1D5DB" />
+            <Text className="mt-4 text-base font-medium text-gray-500">
+              {t("booking.noBookings")}
             </Text>
           </View>
         )}

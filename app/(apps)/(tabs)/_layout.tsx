@@ -1,79 +1,107 @@
-import { FontAwesome } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { IconSymbol } from '../../../components/ui/icon-symbol';
+import { FontAwesome } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { IconSymbol } from "../../../components/ui/icon-symbol";
+import { useAuth } from "../../../context/AuthContext";
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  initialRouteName: "index",
   // The following anchor property is required for proper tab rendering on web in Expo Router v3+
-  anchor: 'index', // Set to a valid anchor from ['bookings', 'index', 'profile', 'vehicles']
+  anchor: "index", // Set to a valid anchor from ['bookings', 'index', 'profile', 'vehicles']
 };
 
 export default function AppTabLayout() {
+  const { user } = useAuth();
   const { t } = useTranslation();
   // Workaround for web - ensure Tabs always render
   // On web, the tabs may not show unless the layout file exports unstable_settings with anchor
 
   return (
+    // <NativeTabs>
+    //   <NativeTabs.Trigger name="page">
+    //     <NativeTabs.Trigger.TabBar backgroundColor="black" />
+    //     <Label>Page</Label>
+    //     <IconSymbol size={28} name="house.fill" color="#9333ea" />
+    //   </NativeTabs.Trigger>
+    // </NativeTabs>
     <Tabs
       screenOptions={{
         headerShown: false,
-        // Ensure tabBar is visible on web
-        // tabBarVisible: true,
-        // tabBarStyle:
-        //   Platform.OS === 'web'
-        //     ? { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10 }
-        //     : undefined,
       }}
     >
       <Tabs.Screen
-        name='index'
+        name="index"
         options={{
-          title: t('common.home'),
+          title: t("common.home"),
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={28}
-              name='house.fill'
-              color={focused ? '#9333ea' : color}
+              name="house.fill"
+              color={focused ? "#9333ea" : color}
+            />
+          ),
+        }}
+      />
+
+      {/* <Tabs.Protected guard={user?.type === "driver"}> */}
+      {/* {user?.type === "driver" && ( */}
+      <Tabs.Screen
+        name="rides"
+        options={{
+          tabBarLabel: t("common.rides"),
+          title: t("common.rides"),
+          href: user?.type === "driver" ? "/rides" : null,
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome
+              name="trophy"
+              size={24}
+              color={focused ? "#9333ea" : color}
             />
           ),
         }}
       />
       <Tabs.Screen
-        name='bookings'
+        name="vehicles"
         options={{
-          title: t('common.booking'),
+          tabBarLabel: t("common.myVehicles"),
+          title: t("common.myVehicles"),
+          href: user?.type === "driver" ? "/vehicles" : null,
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
-              name='bookmark'
+              name="truck"
               size={24}
-              color={focused ? '#9333ea' : color}
+              color={focused ? "#9333ea" : color}
             />
           ),
         }}
       />
+
+      {/* CUSTOMER CAN CREATE AND SEE ALL THEIR BOOKING REQUEST */}
       <Tabs.Screen
-        name='vehicles'
+        name="bookings"
         options={{
-          title: t('common.myVehicles'),
+          tabBarLabel: t("common.booking"),
+          title: t("common.booking"),
+          href: user?.type === "customer" ? "/bookings" : null,
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
-              name='truck'
+              name="bookmark"
               size={24}
-              color={focused ? '#9333ea' : color}
+              color={focused ? "#9333ea" : color}
             />
           ),
         }}
       />
+      {/* )} */}
       <Tabs.Screen
-        name='profile'
+        name="profile"
         options={{
-          title: t('common.profile'),
+          title: t("common.profile"),
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
-              name='gear'
+              name="gear"
               size={24}
-              color={focused ? '#9333ea' : color}
+              color={focused ? "#9333ea" : color}
             />
           ),
         }}

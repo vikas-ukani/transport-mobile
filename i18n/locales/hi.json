@@ -56,7 +56,16 @@
     "contentRequired": "सामग्री आवश्यक है.",
     "seeAll": "सभी देखें",
     "showMore": "और दिखाएँ",
-    "updatePost": "पोस्ट अपडेट करें"
+    "updatePost": "पोस्ट अपडेट करें",
+    "pickLocation": "स्थान चुनें",
+    "pickDate": "तारीख चुनें",
+    "moveMarkerToSelectLocation": "स्थान चुनने के लिए मार्कर ले जाएँ",
+    "selectAddress": "चयनित पता",
+    "pleaseEnableLocation": "कृपया जीपीएस स्थान सक्षम करें.",
+    "failedToFetchBookingDetails": "\"बुकिंग विवरण लाने में विफल\"",
+    "BookingRequestSubmited": "बुकिंग अनुरोध सफलतापूर्वक सबमिट किया गया",
+    "bookingFailed": "\"बुकिंग विफल\"",
+    "rides": "सवारी"
   },
   "login": {
     "title": "वापसी पर स्वागत है",
@@ -148,7 +157,13 @@
     "selectToLocation": "गंतव्य स्थान चुनें",
     "fromLocation": "स्थान से",
     "selectFromLocation": "स्थान से चयन करें",
-    "toLocation": "स्थान के लिए"
+    "toLocation": "स्थान के लिए",
+    "driverNotes": "ड्राइवर नोट्स",
+    "driverNotesPlaceholder": "ड्राइवर नोट्स दर्ज करें",
+    "availableRides": "उपलब्ध सवारी",
+    "estimatedKm": "अनुमानित कि.मी.",
+    "bookRide": "पुस्तक की सवारी",
+    "noRides": "कोई सवारी उपलब्ध नहीं है"
   },
   "vehicles": {
     "title": "वाहन पंजीकरण",
@@ -191,7 +206,10 @@
     "vehicleDeleted": "वाहन सफलतापूर्वक हटा दिया गया",
     "kilometer": "किलोमीटर",
     "estimatedPrice": "अनुमानित मूल्य",
-    "estimatedKilometer": "अनुमानित किलोमीटर"
+    "estimatedKilometer": "अनुमानित किलोमीटर",
+    "pleaseUploadAtLeastOneRCBookPhoto": "कृपया कम से कम एक आरसी बुक फोटो अपलोड करें।",
+    "pleaseUploadAtLeastOneTruckPhoto": "कृपया कम से कम एक ट्रक का फोटो अपलोड करें।",
+    "registrationSubmitted": "\"वाहन पंजीकरण जमा किया गया। सत्यापन में 2 दिन तक का समय लग सकता है।\""
   },
   "post": {
     "pageTitle": "पोस्ट बनाएं",
