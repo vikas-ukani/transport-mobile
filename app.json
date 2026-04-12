@@ -24,9 +24,15 @@
           }
         }
       ],
-      "expo-build-properties"
+      "expo-build-properties",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.vikasdev.transport",
+          "enableGooglePay": true
+        }
+      ]
     ],
-
     "extra": {
       "router": {},
       "eas": {

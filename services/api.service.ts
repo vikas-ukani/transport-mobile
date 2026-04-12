@@ -58,7 +58,8 @@ class ApiService {
     this.client.interceptors.response.use(
       (response: any) => response,
       async (error: AxiosError) => {
-        console.log("API Crash Res:: ", error.response?.data);
+        console.log(`API Crash Res:: [${error.config?.url}]`, error.response?.data);
+   
         const resData: any = error.response?.data;
         if (
           // error.response?.status === 401 ||
@@ -178,7 +179,18 @@ class ApiService {
   }
 
   async getBookingById(id: string) {
-    const response = await this.client.get(`/booking/${id}`);
+    try {
+      const response = await this.client.get(`/booking/${id}`);
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async deleteBookingById(id: string) {
+    const response = await this.client.delete(`/booking/${id}`);
     return response.data;
   }
 
@@ -322,13 +334,66 @@ class ApiService {
     return response.data;
   }
 
-  // Payment endpoints
-  async createPaymentIntent(amount: number, vehicleId: string) {
-    const response = await this.client.post("/payments/create-intent", {
-      amount,
-      vehicleId,
-    });
+  async getStripeConfig() {
+    const response = await this.client.get("/payments/stripe/config");
     return response.data;
+  }
+
+  async getWalletBalance() {
+    const response = await this.client.get("/payments/wallet");
+    return response.data;
+  }
+
+  async placeBookingBid(
+    bookingId: string,
+    body: { fareOfferCents: number; note?: string },
+  ) {
+    try {
+      const response = await this.client.post(
+        `/booking/${bookingId}/bids`,
+        body,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async acceptBookingBid(bookingId: string, bidId: string) {
+    try {
+      const response = await this.client.post(
+        `/booking/${bookingId}/bids/${bidId}/accept`,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async createStripePaymentSheet(body: {
+    type: "booking_payment" | "vehicle_registration" | "wallet_topup";
+    bookingId?: string;
+    vehicleId?: string;
+    amountCents?: number;
+    preferredPaymentMethod?: "UPI" | "GOOGLE_PAY" | "CARD";
+  }) {
+    try {
+      const response = await this.client.post(
+        "/payments/stripe/payment-sheet",
+        body,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") {
+        return data;
+      }
+      throw err;
+    }
   }
 
   // Upload endpoint

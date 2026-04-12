@@ -1,17 +1,57 @@
+import { toast } from '@backpackapp-io/react-native-toast';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-
+import {
+  formatMinorCurrency,
+  useStripeTransportPayment,
+} from '../../hooks/useStripeTransportPayment';
 import { useTranslation } from 'react-i18next';
+import apiService from '../../services/api.service';
 
 const SettingsScreen = () => {
   const { t, i18n } = useTranslation();
   const { user, updateUser } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const [walletCents, setWalletCents] = useState<number | null>(null);
+  const [payCurrency, setPayCurrency] = useState('inr');
+  const { topUpWallet } = useStripeTransportPayment();
+
+  const refreshWallet = useCallback(async () => {
+    try {
+      const r = await apiService.getWalletBalance();
+      if (r?.success) {
+        setWalletCents(r.walletBalanceCents);
+        setPayCurrency(r.currency || 'inr');
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshWallet();
+    }, [refreshWallet]),
+  );
+
+  const onTopUp = async (cents: number) => {
+    if (!process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      toast.error(t('payment.configurePublishableKey'));
+      return;
+    }
+    const res = await topUpWallet(cents);
+    if (res.ok) {
+      toast.success(t('payment.topUpHint'));
+      setTimeout(refreshWallet, 2500);
+    } else if (!res.canceled) {
+      toast.error(res.message || 'Top-up failed');
+    }
+  };
 
   const changeLanguage = async (lang: string) => {
     // i18n.locale = 'en';
@@ -109,6 +149,35 @@ const SettingsScreen = () => {
               <Ionicons name='checkmark-circle' size={24} color='#3B82F6' />
             )}
           </TouchableOpacity>
+        </View>
+
+        <View className='px-5 py-5 mt-4 bg-white shadow-sm'>
+          <Text className='mb-3 text-lg font-bold text-gray-900'>
+            {t('payment.walletTitle')}
+          </Text>
+          <Text className='mb-1 text-sm font-medium text-gray-600'>
+            {t('payment.balance')}
+          </Text>
+          <Text className='mb-4 text-2xl font-bold text-gray-900'>
+            {walletCents != null
+              ? formatMinorCurrency(walletCents, payCurrency)
+              : '—'}
+          </Text>
+          <Text className='mb-3 text-xs text-gray-500'>{t('payment.topUp')}</Text>
+          <View className='flex-row flex-wrap gap-2'>
+            {[500, 1000, 2000].map((cents) => (
+              <TouchableOpacity
+                key={cents}
+                className='px-4 py-3 rounded-xl bg-primary'
+                onPress={() => onTopUp(cents)}
+                activeOpacity={0.8}
+              >
+                <Text className='text-sm font-bold text-white'>
+                  + {formatMinorCurrency(cents, payCurrency)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Notification Settings */}

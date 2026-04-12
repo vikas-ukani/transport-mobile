@@ -1,8 +1,8 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import {
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
+    FontAwesome5,
+    Ionicons,
+    MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -13,20 +13,20 @@ import { getPreciseDistance } from "geolib";
 import { startTransition, useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  ActivityIndicator,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 import {
-  TRUCK_HEIGHT_OPTIONS,
-  TRUCK_LENGTH_OPTIONS,
-  TRUCK_LOAD_CAPACITY_OPTIONS,
+    TRUCK_HEIGHT_OPTIONS,
+    TRUCK_LENGTH_OPTIONS,
+    TRUCK_LOAD_CAPACITY_OPTIONS,
 } from "../../constants/vehicle";
 
 import { useTranslation } from "react-i18next";
@@ -73,7 +73,6 @@ const CreateBookingScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showFromMap, setShowFromMap] = useState(false);
   const [showToMap, setShowToMap] = useState(false);
-
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const {
@@ -198,23 +197,39 @@ const CreateBookingScreen = () => {
     return inKMs;
   };
 
-  // Submission handler (replace with your booking logic)
   const onSubmit = async (data: any) => {
-    // You will want to actually submit the data to your apiService
     try {
       setLoading(true);
 
-      // Here call your booking API (replace with real API call)
       const resData = await apiService.createBooking(data);
-      console.log("resData", resData);
-      if (resData.success) {
-        toast.success(resData.message || t("common.BookingRequestSubmited"));
-        reset();
-        // clear address selections/maps maybe
-        router.push("/(apps)/bookings");
-      } else {
+      if (!resData.success) {
         toast.error(resData.message || t("common.bookingFailed"));
+        return;
+      } else {
+        toast.success(resData.message || t("common.BookingRequestSubmited"));
       }
+
+      // const bookingId = resData.booking?.id;
+      // if (!bookingId) {
+      //   toast.error(t("common.bookingFailed"));
+      //   return;
+      // }
+
+      // const pay = await payForBooking(bookingId);
+      // if (pay.ok) {
+      //   // toast.success(resData.message || t("common.BookingRequestSubmited"));
+      //   toast.success(
+      //     `${resData.message || t("common.BookingRequestSubmited")} ${t("payment.checkoutSuccess")}`,
+      //   );
+      //   reset();
+      //   router.push("/(apps)/bookings");
+      //   return;
+      // } else if (pay.canceled) {
+      //   // Delete booking here
+      //   toast.error(t("payment.canceledUnpaidBooking"));
+      // } else {
+      //   toast.error(pay.message || t("payment.configurePublishableKey"));
+      // }
     } catch (error: any) {
       console.log("Catch Error", error.message);
       toast.error(error.message || t("common.bookingFailed"));
@@ -673,6 +688,7 @@ const CreateBookingScreen = () => {
               </Text>
             </View> */}
           </View>
+
           <View className="mb-6">
             <Text className="mb-2 text-lg font-bold text-gray-800">
               {t("booking.driverNotes") || "Special notes for driver"}

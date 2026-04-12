@@ -74,6 +74,10 @@
     "moreSection": "ખાતું",
     "logoutConfirm": "શું તમે ખરેખર લૉગઆઉટ કરવા માંગો છો?"
   },
+  "wallet": {
+    "addFunds": "રકમ ઉમેરો",
+    "stripeBalanceHint": "આ મેનુ ખોલ્યા પછી અથવા ટોપ-અપ પછી બેલેન્સ અપડેટ થાય છે."
+  },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",
     "subtitle": "ચાલુ રાખવા માટે સાઇન ઇન કરો",
@@ -268,5 +272,24 @@
     "security": "સુરક્ષા",
     "securitySettings": "સુરક્ષા સેટિંગ્સ",
     "title": "સેટિંગ્સ"
+  },
+  "payment": {
+    "useWalletFirst": "પહેલા ઇન-એપ વૉલેટ, પછી કાર્ડ / Apple Pay / Google Pay",
+    "walletOnlyRegistration": "નોંધણી ફી માત્ર ઇન-એપ વૉલેટમાંથી લાગશે. બેલેન્સ ઓછું હોય તો વૉલેટમાં રકમ ઉમેરો.",
+    "insufficientWalletTitle": "વૉલેટમાં પૂરતી રકમ નથી",
+    "insufficientWalletVehicleMessage": "આ વાહન નોંધાવવા ઓછામાં ઓછી {{amount}} જોઈએ. રકમ ઉમેરીને ફરી પ્રયાસ કરો.",
+    "walletRefreshFailed": "વૉલેટ બેલેન્સ લોડ થયું નહીં. ફરી પ્રયાસ કરો.",
+    "registrationPayFailed": "નોંધણી ચુકવણી પૂર્ણ થઈ નહીં.",
+    "bookingHold": "બુકિંગ ચુકવણી",
+    "registrationFee": "નોંધણી ફી",
+    "configurePublishableKey": "Stripe માટે EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY સેટ કરો.",
+    "canceledUnpaidBooking": "ચુકવણી રદ — બુકિંગ બાકી તરીકે સાચવી.",
+    "canceledUnpaidVehicle": "ચુકવણી રદ — પછીથી સેટિંગ્સમાંથી ફી ચૂકવો.",
+    "walletTitle": "વૉલેટ",
+    "balance": "બેલેન્સ",
+    "topUp": "રકમ ઉમેરો",
+    "topUpHint": "ચુકવણી પુષ્ટ થયા પછી બેલેન્સ અપડેટ થાય છે.",
+    "paidWithWallet": "વૉલેટમાંથી ચૂકવ્યું.",
+    "checkoutSuccess": "ચુકવણી સફળ."
   }
 }

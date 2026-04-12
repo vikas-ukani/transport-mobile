@@ -74,9 +74,12 @@ class SocketService {
   private setupDefaultListeners() {
     if (!this.socket) return;
 
-    // Booking updates
+    // Booking updates (REST + real-time)
     this.socket.on("booking:created", (data) => {
       this.notifyListeners("booking:created", data);
+    });
+    this.socket.on("booking:updated", (data) => {
+      this.notifyListeners("booking:updated", data);
     });
 
     this.socket.on("booking:updated", (data) => {
@@ -85,6 +88,16 @@ class SocketService {
 
     this.socket.on("booking:matched", (data) => {
       this.notifyListeners("booking:matched", data);
+    });
+
+    this.socket.on("booking:bid", (data) => {
+      this.notifyListeners("booking:bid", data);
+    });
+    this.socket.on("booking:bid_accepted", (data) => {
+      this.notifyListeners("booking:bid_accepted", data);
+    });
+    this.socket.on("booking:payment", (data) => {
+      this.notifyListeners("booking:payment", data);
     });
 
     // Notifications

@@ -30,8 +30,8 @@ export interface User {
   address?: string;
   latitude?: number;
   longitude?: number;
-  /** Set by API when wallet is supported (e.g. `/me` response). */
-  walletBalance?: number;
+  /** In-app wallet in minor units (e.g. paise / cents). From login or `/me`. */
+  walletBalanceCents?: number;
 }
 
 interface AuthContextType {
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Connect socket when user is authenticated
   useEffect(() => {
     if (user) {
-      console.log("here");
+      console.log("here", user);
       i18n.changeLanguage(user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE);
       // i18n.defaultLocale = user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE;
       socketService.connect();

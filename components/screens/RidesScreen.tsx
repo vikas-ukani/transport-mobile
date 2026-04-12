@@ -1,5 +1,6 @@
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { RefreshControl } from "react-native-gesture-handler";
@@ -9,6 +10,7 @@ import { toast } from "@backpackapp-io/react-native-toast";
 import { useTranslation } from "react-i18next";
 import { User } from "../../context/AuthContext";
 import apiService from "../../services/api.service";
+import socketService from "../../services/socket";
 
 interface Booking {
   id: string;
@@ -60,19 +62,10 @@ const RidesScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadRides();
-  }, []);
-
-  const onRefresh = useCallback(() => {
-    loadRides(1, false);
-  }, []);
-
-  // Use this to fetch rides with pagination
-  const loadRides = async (pageNum = 1, append = false) => {
+  const loadRides = useCallback(async (pageNum = 1, append = false) => {
     try {
       if (pageNum === 1) setLoading(true);
-      setRefreshing(pageNum === 1 && append === false); // Can be used for PullToRefresh
+      setRefreshing(pageNum === 1 && append === false);
 
       const data = await apiService.getDriverRides({
         page: pageNum,
@@ -96,7 +89,28 @@ const RidesScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadRides();
+  }, [loadRides]);
+
+  const onRefresh = useCallback(() => {
+    loadRides(1, false);
+  }, [loadRides]);
+
+  useFocusEffect(
+    useCallback(() => {
+      socketService.connect();
+      const onNew = () => loadRides(1, false);
+      socketService.on("booking:created", onNew);
+      socketService.on("booking:updated", onNew);
+      return () => {
+        socketService.off("booking:created", onNew);
+        socketService.off("booking:updated", onNew);
+      };
+    }, [loadRides]),
+  );
 
   // Adds infinite scroll/pagination logic for loading more rides
   const handleLoadMore = () => {

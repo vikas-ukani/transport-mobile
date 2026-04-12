@@ -1,4 +1,5 @@
 import { Toasts } from "@backpackapp-io/react-native-toast";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -7,6 +8,9 @@ import AppErrorBoundary from "../components/AppErrorBoundary";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import "../global.css";
 import "../i18n/config";
+
+const stripePublishableKey =
+  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 
 function RootNavigator() {
   const { isAuthenticated } = useAuth();
@@ -50,27 +54,30 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AppErrorBoundary>
-      <AuthProvider>
-        <StatusBar style="inverted" />
-        <GestureHandlerRootView>
-          <RootNavigator />
-          <Toasts
-            globalAnimationType="fade"
-            defaultStyle={{
-              view: {
-                backgroundColor: "rgba(0, 0, 0, 0.8)",
-                borderRadius: 8,
-              },
-              text: {
-                color: "white",
-              },
-              // indicator: {
-              //   marginRight: 16,
-              // },
-            }}
-          />
-        </GestureHandlerRootView>
-      </AuthProvider>
+      <StripeProvider
+        publishableKey={stripePublishableKey}
+        merchantIdentifier="merchant.com.vikasdev.transport"
+        urlScheme="mobile"
+      >
+        <AuthProvider>
+          <StatusBar style="inverted" />
+          <GestureHandlerRootView>
+            <RootNavigator />
+            <Toasts
+              globalAnimationType="fade"
+              defaultStyle={{
+                view: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  borderRadius: 8,
+                },
+                text: {
+                  color: "white",
+                },
+              }}
+            />
+          </GestureHandlerRootView>
+        </AuthProvider>
+      </StripeProvider>
     </AppErrorBoundary>
   );
 }

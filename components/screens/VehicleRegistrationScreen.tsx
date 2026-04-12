@@ -1,8 +1,8 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import {
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
+    FontAwesome5,
+    Ionicons,
+    MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Picker } from "@react-native-picker/picker";
@@ -13,19 +13,24 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 import { VEHICLE_RC_PATTERN_VALIDATION } from "../../constants/vehicle";
 import { useAuth } from "../../context/AuthContext";
+import {
+    formatMinorCurrency,
+    useStripeTransportPayment,
+} from "../../hooks/useStripeTransportPayment";
 import apiService, { getBaseUrl } from "../../services/api.service";
 
 const schema = yup.object().shape({
@@ -49,7 +54,7 @@ const VehicleRegistrationScreen = () => {
   const { id } = useGlobalSearchParams();
   const { t } = useTranslation();
 
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [rcPhotos, setRcPhotos] = useState<string[]>([]);
   const [truckPhoto, setTruckPhoto] = useState<string[]>([]);
   const [truckRCIds, setTruckRCIds] = useState<string[]>([]);
@@ -57,6 +62,11 @@ const VehicleRegistrationScreen = () => {
   const [referralCodeVisible, setReferralCodeVisible] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registrationFeeCents, setRegistrationFeeCents] = useState<
+    number | null
+  >(null);
+  const [paymentCurrency, setPaymentCurrency] = useState("inr");
+  const { payVehicleRegistration } = useStripeTransportPayment();
 
   // Ref for accessing KeyboardAwareScrollView and ScrollView for scrollTo
   const keyboardAwareScrollRef = useRef<any>(null);
@@ -92,6 +102,19 @@ const VehicleRegistrationScreen = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (id) return;
+    let alive = true;
+    apiService.getStripeConfig().then((c: any) => {
+      if (!alive || !c?.success) return;
+      setRegistrationFeeCents(c.vehicleRegistrationFeeCents ?? null);
+      setPaymentCurrency(c.currency || "inr");
+    });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
   const getVehicle = async (id: string) => {
     try {
       setLoading(true);
@@ -119,7 +142,7 @@ const VehicleRegistrationScreen = () => {
         setRcPhotos(
           vehicleData.rcPhotos.map((img: any) => getBaseUrl() + img.url),
         );
-        setTruckRCIds(vehicleData.rcPhotos || []);
+        setTruckRCIds(vehicleData.rcPhotos.map((rcPh: any) => rcPh.id) || []);
       }
 
       // Truck Photos
@@ -258,12 +281,45 @@ const VehicleRegistrationScreen = () => {
     try {
       setLoading(true);
 
+      if (!id && registrationFeeCents != null && registrationFeeCents > 0) {
+        const wb = await apiService.getWalletBalance();
+        if (!wb?.success) {
+          toast.error(wb?.message || t("payment.walletRefreshFailed"));
+          setLoading(false);
+          return;
+        }
+        if ((wb.walletBalanceCents ?? 0) < registrationFeeCents) {
+          setLoading(false);
+          Alert.alert(
+            t("payment.insufficientWalletTitle"),
+            t("payment.insufficientWalletVehicleMessage", {
+              amount: formatMinorCurrency(
+                registrationFeeCents,
+                paymentCurrency,
+              ),
+            }),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("payment.addFundsFromMenu"),
+                style: "default",
+                onPress: () => router.back(),
+              },
+            ],
+          );
+          return;
+        }
+      }
+
       // Upload RC Photos (handles multiple RC images)
       let uploadedRCPhotos: any[] = await Promise.all(
         rcPhotos
           .filter((photo) => photo.includes("uploads") === false)
           .map(async (asset) => await apiService.uploadImage(asset, "vehicle")),
       );
+      if (id && uploadedRCPhotos.length === 0) {
+        uploadedRCPhotos = truckRCIds.map((id) => id);
+      }
       let rcImageIds = uploadedRCPhotos.map((u: any) => u?.id).filter(Boolean);
       if (id) {
         rcImageIds = Array.from(
@@ -283,16 +339,14 @@ const VehicleRegistrationScreen = () => {
           .filter((photo) => photo.includes("uploads") === false)
           .map(async (asset) => await apiService.uploadImage(asset, "vehicle")),
       );
-
       let imageIds = uploadVehiclePhotos.map((u: any) => u?.id).filter(Boolean);
-
+      if (id) {
+        imageIds = Array.from(new Set([...imageIds, ...(truckPhotoIds || [])]));
+      }
       if (imageIds.length === 0) {
         toast.error(t("vehicles.pleaseUploadAtLeastOneTruckPhoto"));
         setLoading(false);
         return;
-      }
-      if (id) {
-        imageIds = Array.from(new Set([...imageIds, ...(truckPhotoIds || [])]));
       }
       const newVehicle = {
         ...data,
@@ -306,15 +360,71 @@ const VehicleRegistrationScreen = () => {
           newVehicle,
           id as string,
         );
+        if (resData.success) {
+          toast.success(resData.message || t("vehicles.registrationSubmitted"));
+          reset();
+          setRcPhotos([]);
+          setTruckPhoto([]);
+          router.push("/(apps)/(tabs)/vehicles");
+          toast.success(resData.message || t("vehicles.registrationSubmitted"));
+          return;
+        }
       } else {
         resData = await apiService.registerVehicle(newVehicle);
       }
       if (resData.success) {
-        toast.success(resData.message || t("vehicles.registrationSubmitted"));
-        reset();
-        setRcPhotos([]);
-        setTruckPhoto([]);
-        router.push("/(apps)/(tabs)/vehicles");
+        // Create if not id
+        if (!id) {
+          const vehicleId = resData.vehicle?.id;
+          if (vehicleId) {
+            const pay = await payVehicleRegistration(vehicleId);
+            if (pay.ok) {
+              try {
+                const w = await apiService.getWalletBalance();
+                if (w?.success) {
+                  await updateUser({
+                    walletBalanceCents: w.walletBalanceCents,
+                  });
+                }
+              } catch {
+                /* ignore */
+              }
+              reset();
+              setRcPhotos([]);
+              setTruckPhoto([]);
+              router.push("/(apps)/(tabs)/vehicles");
+              toast.success(
+                resData.message || t("vehicles.registrationSubmitted"),
+              );
+              return;
+            }
+            if (pay.canceled) {
+              toast.error(t("payment.canceledUnpaidVehicle"));
+              await apiService.deleteVehicle(vehicleId);
+            } else if (pay.code === "INSUFFICIENT_WALLET") {
+              Alert.alert(
+                t("payment.insufficientWalletTitle"),
+                t("payment.insufficientWalletVehicleMessage", {
+                  amount: formatMinorCurrency(
+                    registrationFeeCents ?? 0,
+                    paymentCurrency,
+                  ),
+                }),
+                [
+                  { text: t("common.cancel"), style: "cancel" },
+                  {
+                    text: t("payment.addFundsFromMenu"),
+                    onPress: () => router.back(),
+                  },
+                ],
+              );
+              await apiService.deleteVehicle(vehicleId);
+            } else {
+              toast.error(pay.message || t("payment.registrationPayFailed"));
+              await apiService.deleteVehicle(vehicleId);
+            }
+          }
+        }
       } else {
         toast.error(resData.message || "Vehicle registration failed");
       }
@@ -366,7 +476,7 @@ const VehicleRegistrationScreen = () => {
           >
             <Ionicons name="arrow-back" size={24} color="#1F2937" />
             <Text className="text-xl font-bold text-gray-900">
-              {t("vehicles.addVehicle")}
+              {id ? t("vehicles.updateVehicle") : t("vehicles.addVehicle")}
             </Text>
           </TouchableOpacity>
           <View style={{ width: 40 }} />
@@ -378,9 +488,17 @@ const VehicleRegistrationScreen = () => {
           >
             {/* Driver Info Cards */}
             <View className="mb-6">
-              <Text className="mb-2 text-sm font-bold text-gray-700">
-                {t("vehicles.driverName")}
-              </Text>
+              <View className="flex-row gap-2 items-start">
+                <Text className="mb-3 text-sm font-bold text-gray-700">
+                  {t("vehicles.driverName")}
+                  <Text className="text-danger">*</Text>
+                </Text>
+                {errors.driverName && (
+                  <Text className="text-sm font-medium text-danger">
+                    {errors.driverName.message}
+                  </Text>
+                )}
+              </View>
               <Controller
                 control={control}
                 name="driverName"
@@ -398,9 +516,17 @@ const VehicleRegistrationScreen = () => {
             </View>
 
             <View className="mb-6">
-              <Text className="mb-2 text-sm font-bold text-gray-700">
-                {t("vehicles.mobileNumber")}
-              </Text>
+              <View className="flex-row gap-2 items-start">
+                <Text className="mb-3 text-sm font-bold text-gray-700">
+                  {t("vehicles.mobileNumber")}
+                  <Text className="text-danger">*</Text>
+                </Text>
+                {errors.mobileNumber && (
+                  <Text className="text-sm font-medium text-danger">
+                    {errors.mobileNumber.message}
+                  </Text>
+                )}
+              </View>
               <Controller
                 control={control}
                 name="mobileNumber"
@@ -427,7 +553,9 @@ const VehicleRegistrationScreen = () => {
                 </Text>
                 {errors.rcNumber && (
                   <Text className="text-sm font-medium text-danger">
-                    {errors.rcNumber.message}
+                    {errors.rcNumber.type === "matches"
+                      ? "Invalid RC number format. Example: MH12AB1234"
+                      : errors.rcNumber.message}
                   </Text>
                 )}
               </View>
@@ -437,12 +565,15 @@ const VehicleRegistrationScreen = () => {
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
                     className="px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200"
-                    placeholder={t("vehicles.rcNumber")}
+                    placeholder="MH12AB1234"
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => onChange(text.toUpperCase())}
                     onBlur={onBlur}
                     placeholderTextColor="#9CA3AF"
                     autoCapitalize="characters"
+                    keyboardType="ascii-capable"
+                    autoCorrect={false}
+                    maxLength={13}
                   />
                 )}
               />
@@ -509,7 +640,7 @@ const VehicleRegistrationScreen = () => {
                 </Text>
               </View>
 
-              <View className="flex-row gap-2 justify-evenly w-11/12">
+              <View className="flex-row gap-2 justify-evenly w-12/12">
                 <TouchableOpacity
                   className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50"
                   onPress={() => takeTruckPhoto("truck")}
@@ -832,6 +963,22 @@ const VehicleRegistrationScreen = () => {
                 />
               )}
             </View>
+
+            {!id && (
+              <View className="p-4 mb-4 bg-white rounded-xl border-2 border-gray-200">
+                <Text className="mb-1 text-lg font-bold text-gray-800">
+                  {t("payment.registrationFee")}
+                </Text>
+                <Text className="mb-2 text-base text-gray-600">
+                  {registrationFeeCents != null
+                    ? formatMinorCurrency(registrationFeeCents, paymentCurrency)
+                    : "—"}
+                </Text>
+                <Text className="text-sm leading-5 text-gray-700">
+                  {t("payment.walletOnlyRegistration")}
+                </Text>
+              </View>
+            )}
 
             <TouchableOpacity
               className="flex-row justify-center items-center py-6 mb-4 rounded-xl shadow-lg bg-primary"

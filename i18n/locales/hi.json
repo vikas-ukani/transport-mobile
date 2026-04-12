@@ -74,6 +74,10 @@
     "moreSection": "खाता",
     "logoutConfirm": "क्या आप वाकई लॉग आउट करना चाहते हैं?"
   },
+  "wallet": {
+    "addFunds": "राशि जोड़ें",
+    "stripeBalanceHint": "इस मेनू को खोलने या टॉप-अप के बाद शेष अपडेट होता है।"
+  },
   "login": {
     "title": "वापसी पर स्वागत है",
     "subtitle": "जारी रखने के लिए साइन इन करें",
@@ -268,5 +272,24 @@
   },
   "forgotPassword": {
     "pageTitle": "पासवर्ड भूल गए"
+  },
+  "payment": {
+    "useWalletFirst": "पहले इन-ऐप वॉलेट, फिर कार्ड / Apple Pay / Google Pay",
+    "walletOnlyRegistration": "पंजीकरण शुल्क केवल इन-ऐप वॉलेट से कटेगा। शेष कम हो तो वॉलेट में राशि जोड़ें।",
+    "insufficientWalletTitle": "वॉलेट में पर्याप्त राशि नहीं",
+    "insufficientWalletVehicleMessage": "यह वाहन पंजीकृत करने के लिए कम से कम {{amount}} चाहिए। राशि जोड़कर पुनः प्रयास करें।",
+    "walletRefreshFailed": "वॉलेट शेष लोड नहीं हो सका। पुनः प्रयास करें।",
+    "registrationPayFailed": "पंजीकरण भुगतान पूरा नहीं हो सका।",
+    "bookingHold": "बुकिंग भुगतान",
+    "registrationFee": "पंजीकरण शुल्क",
+    "configurePublishableKey": "Stripe भुगतान के लिए EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY सेट करें।",
+    "canceledUnpaidBooking": "भुगतान रद्द — बुकिंग अवैतनिक के रूप में सहेजी गई।",
+    "canceledUnpaidVehicle": "भुगतान रद्द — बाद में सेटिंग्स से शुल्क चुकाएं।",
+    "walletTitle": "वॉलेट",
+    "balance": "शेष",
+    "topUp": "राशि जोड़ें",
+    "topUpHint": "भुगतान की पुष्टि के बाद शेष अपडेट होता है।",
+    "paidWithWallet": "वॉलेट से भुगतान।",
+    "checkoutSuccess": "भुगतान सफल।"
   }
 }

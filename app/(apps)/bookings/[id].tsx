@@ -1,5 +1,5 @@
-import CreateBookingScreen from "../../../components/screens/CreateBookingScreen";
+import BookingDetailScreen from "../../../components/screens/BookingDetailScreen";
 
-export default function EditVehicle() {
-  return <CreateBookingScreen />;
+export default function BookingDetailPage() {
+  return <BookingDetailScreen />;
 }

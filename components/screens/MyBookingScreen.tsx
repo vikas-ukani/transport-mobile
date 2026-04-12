@@ -5,8 +5,10 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { RefreshControl } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { toast } from "@backpackapp-io/react-native-toast";
 import { useTranslation } from "react-i18next";
 import apiService from "../../services/api.service";
+import ConfirmPopup from "../common/ConfirmPopup";
 
 interface Booking {
   id: string;
@@ -51,6 +53,10 @@ const MyBookingScreen = () => {
 
   const [bookings, setBookings] = useState<Booking[] | []>([]);
   const [loading, setLoading] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(
+    null,
+  );
+
   // Pagination state
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -96,6 +102,23 @@ const MyBookingScreen = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      const data = await apiService.deleteBookingById(id);
+      if (data.success) {
+        toast.success(t("booking.bookingDeleted"));
+        // Refresh the vehicle list after deletion
+        loadBookings();
+      }
+    } catch (error) {
+      console.error("Failed to delete booking:", error);
+    } finally {
+      setLoading(false);
+      setShowConfirmDelete(null);
+    }
+  };
+
   const filteredBookings = [...bookings].sort((a, b) => {
     if (a.status < b.status) return 1;
     if (a.status > b.status) return -1;
@@ -104,6 +127,15 @@ const MyBookingScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
+      <ConfirmPopup
+        loading={loading}
+        show={showConfirmDelete !== null}
+        onCancel={() => setShowConfirmDelete(null)}
+        onConfirm={() => handleDelete(showConfirmDelete!)}
+        title="Delete?"
+        subTitle="Are you sure you want to delete?"
+      />
+
       <View className="flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
         <Text className="text-xl font-bold text-gray-900">
           {t("booking.myBookings")}
@@ -263,32 +295,28 @@ const MyBookingScreen = () => {
                     </Text>
                   </View>
                   <View className="flex-row gap-3 justify-end mt-2">
-                    {/* Edit button */}
                     {["pending"].includes(booking.status) && (
                       <TouchableOpacity
                         className="p-2 bg-purple-50 rounded-full"
-                        onPress={() => {
-                          router.push(`/(apps)/bookings/${booking.id}`);
-                          // Implement your edit logic here (e.g., open edit modal/page)
-                          // Example: router.push(`/edit-vehicle/${item.id}`)
-                        }}
+                        onPress={() =>
+                          router.push(`/(apps)/bookings/${booking.id}`)
+                        }
                         activeOpacity={0.8}
-                        accessibilityLabel="Edit vehicle"
+                        accessibilityLabel={t("bidding.bookingDetail")}
                       >
                         <Ionicons
-                          name="create-outline"
+                          name="pricetags-outline"
                           size={20}
                           className="text-primary"
                         />
                       </TouchableOpacity>
                     )}
-
                     {["pending"].includes(booking.status) && (
                       <TouchableOpacity
                         className="p-2 bg-red-50 rounded-full"
-                        // onPress={() => setShowConfirmDelete(item.id)}
+                        onPress={() => setShowConfirmDelete(booking.id)}
                         activeOpacity={0.8}
-                        accessibilityLabel="Delete vehicle"
+                        accessibilityLabel="Delete booking"
                       >
                         <Ionicons
                           name="trash-outline"
