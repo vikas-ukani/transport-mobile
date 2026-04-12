@@ -65,7 +65,14 @@
     "failedToFetchBookingDetails": "\"બુકિંગ વિગતો મેળવવામાં નિષ્ફળ\"",
     "BookingRequestSubmited": "બુકિંગ વિનંતી સફળતાપૂર્વક સબમિટ થઈ",
     "bookingFailed": "\"બુકિંગ નિષ્ફળ થયું\"",
-    "rides": "સવારી"
+    "rides": "સવારી",
+    "walletBalance": "વૉલેટ બેલેન્સ",
+    "walletUnavailable": "—"
+  },
+  "drawer": {
+    "mainSection": "મુખ્ય",
+    "moreSection": "ખાતું",
+    "logoutConfirm": "શું તમે ખરેખર લૉગઆઉટ કરવા માંગો છો?"
   },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",

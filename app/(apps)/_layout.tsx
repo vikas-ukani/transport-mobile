@@ -1,25 +1,26 @@
-import { Stack } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { Platform } from "react-native";
+import AppDrawerContent from "../../components/common/AppDrawerContent";
 import UserGPSUpdate from "../../components/common/UserGPSUpdate";
 
-export default function RootLayout() {
-  // Notifications.registerRemoteNotifications();
+export const unstable_settings = {
+  initialRouteName: "(tabs)",
+};
 
+export default function AppsLayout() {
   return (
     <>
       {Platform.OS !== "web" && <UserGPSUpdate />}
-      <Stack
+      <Drawer
+        drawerContent={(props) => <AppDrawerContent {...props} />}
         screenOptions={{
           headerShown: false,
-          statusBarHidden: false,
-          statusBarAnimation: "slide",
-          statusBarStyle: "dark",
+          drawerType: "slide",
+          overlayColor: "rgba(0,0,0,0.45)",
+          drawerStyle: { width: 300 },
+          swipeEnabled: true,
         }}
-      >
-        <Stack.Screen name="index" options={{ title: "Home Page" }} />
-        {/* <Stack.Screen name="book-vehicle" /> */}
-        {/* <Stack.Screen name="notifications" /> */}
-      </Stack>
+      />
     </>
   );
 }

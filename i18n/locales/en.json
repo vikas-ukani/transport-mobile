@@ -65,7 +65,14 @@
     "failedToFetchBookingDetails": "\"Failed to fetch booking details\"",
     "BookingRequestSubmited": "Booking request submitted successfully",
     "bookingFailed": "\"Booking failed\"",
-    "rides": "Rides"
+    "rides": "Rides",
+    "walletBalance": "Wallet balance",
+    "walletUnavailable": "—"
+  },
+  "drawer": {
+    "mainSection": "Main",
+    "moreSection": "Account",
+    "logoutConfirm": "Are you sure you want to log out?"
   },
   "login": {
     "title": "Welcome Back",

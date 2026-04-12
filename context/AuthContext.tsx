@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -29,6 +30,8 @@ export interface User {
   address?: string;
   latitude?: number;
   longitude?: number;
+  /** Set by API when wallet is supported (e.g. `/me` response). */
+  walletBalance?: number;
 }
 
 interface AuthContextType {
@@ -177,11 +180,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const updateUser = async (userData: Partial<User>) => {
-    const updatedUser = { ...user, ...userData } as User;
-    await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-    setUser(updatedUser);
-  };
+  const updateUser = useCallback(async (userData: Partial<User>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const updatedUser = { ...current, ...userData } as User;
+      AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
 
   return (
     <AuthContext.Provider

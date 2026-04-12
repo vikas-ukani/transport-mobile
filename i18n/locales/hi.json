@@ -65,7 +65,14 @@
     "failedToFetchBookingDetails": "\"बुकिंग विवरण लाने में विफल\"",
     "BookingRequestSubmited": "बुकिंग अनुरोध सफलतापूर्वक सबमिट किया गया",
     "bookingFailed": "\"बुकिंग विफल\"",
-    "rides": "सवारी"
+    "rides": "सवारी",
+    "walletBalance": "वॉलेट बैलेंस",
+    "walletUnavailable": "—"
+  },
+  "drawer": {
+    "mainSection": "मुख्य",
+    "moreSection": "खाता",
+    "logoutConfirm": "क्या आप वाकई लॉग आउट करना चाहते हैं?"
   },
   "login": {
     "title": "वापसी पर स्वागत है",

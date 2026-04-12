@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import DrawerMenuButton from './DrawerMenuButton';
 
 const HomeHeader = () => {
   const { t, i18n } = useTranslation();
@@ -41,13 +42,7 @@ const HomeHeader = () => {
   return (
     <>
       <View className='flex-row justify-between items-center px-2 py-1 bg-white border-b border-gray-300 shadow'>
-        <TouchableOpacity
-          // onPress={() => navigation.openDrawer()}
-          className='p-1'
-          activeOpacity={0.7}
-        >
-          <Ionicons name='menu' size={28} color='#1F2937' />
-        </TouchableOpacity>
+        <DrawerMenuButton />
         <View className='flex-row gap-2 items-center'>
           {__DEV__ && (
             <TouchableOpacity
