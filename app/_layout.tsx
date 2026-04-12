@@ -8,7 +8,6 @@ import { AuthProvider, useAuth } from "../context/AuthContext";
 import "../global.css";
 import "../i18n/config";
 
-
 function RootNavigator() {
   const { isAuthenticated } = useAuth();
 
@@ -18,7 +17,7 @@ function RootNavigator() {
         headerShown: false,
         statusBarHidden: false,
         statusBarAnimation: "slide",
-        statusBarStyle: "auto",
+        statusBarStyle: "dark",
       }}
     >
       <Stack.Protected guard={!!isAuthenticated}>
@@ -28,7 +27,7 @@ function RootNavigator() {
             headerShown: false,
             statusBarHidden: false,
             statusBarAnimation: "slide",
-            statusBarStyle: "auto",
+            statusBarStyle: "dark",
           }}
         />
       </Stack.Protected>
@@ -39,7 +38,7 @@ function RootNavigator() {
           options={{
             headerShown: false,
             statusBarHidden: false,
-            statusBarStyle: "auto",
+            statusBarStyle: "dark",
             statusBarAnimation: "slide",
           }}
         />

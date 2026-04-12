@@ -1,8 +1,8 @@
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import {
-    DrawerContentScrollView,
-    useDrawerStatus,
-    type DrawerContentComponentProps,
+  DrawerContentScrollView,
+  useDrawerStatus,
+  type DrawerContentComponentProps,
 } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { useEffect, type ReactNode } from "react";
