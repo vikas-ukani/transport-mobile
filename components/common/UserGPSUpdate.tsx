@@ -12,21 +12,20 @@ const UserGPSUpdate = () => {
     useCallback(() => {
       async function getCurrentLocation() {
         try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          // let { status } = await Location.requestForegroundPermissionsAsync();
-
-          if (status !== "granted") {
-            return;
-          }
-
-          // Get current position only if region is not set
-          const current = await Location.getCurrentPositionAsync({});
-          const { latitude, longitude }: any = current.coords;
-          const [place] = await Location.reverseGeocodeAsync({
-            latitude,
-            longitude,
-          });
           if (user && user.id) {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+
+            if (status !== "granted") {
+              return;
+            }
+
+            // Get current position only if region is not set
+            const current = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude }: any = current.coords;
+            const [place] = await Location.reverseGeocodeAsync({
+              latitude,
+              longitude,
+            });
             await apiService.userPartialUpdate(user?.id as string, {
               id: user.id,
               latitude,
@@ -39,7 +38,7 @@ const UserGPSUpdate = () => {
         }
       }
       getCurrentLocation();
-    }, [user?.id])
+    }, [user]),
   );
 
   return <View />;

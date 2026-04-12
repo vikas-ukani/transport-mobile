@@ -213,11 +213,11 @@ const CreateBookingScreen = () => {
         // clear address selections/maps maybe
         router.push("/(apps)/bookings");
       } else {
-        toast.error(resData.message || t('common.bookingFailed'));
+        toast.error(resData.message || t("common.bookingFailed"));
       }
     } catch (error: any) {
       console.log("Catch Error", error.message);
-      toast.error(error.message ||  t('common.bookingFailed'));
+      toast.error(error.message || t("common.bookingFailed"));
     } finally {
       setLoading(false);
     }
@@ -345,8 +345,10 @@ const CreateBookingScreen = () => {
                   setValue("toLongitude", longitude);
                   setShowToMap(false);
                 }}
-                latitude={getValues("toLatitude") || null}
-                longitude={getValues("toLongitude") || null}
+                latitude={getValues("toLatitude") || getValues("fromLatitude")}
+                longitude={
+                  getValues("toLongitude") || getValues("fromLongitude")
+                }
               />
             )}
           </View>

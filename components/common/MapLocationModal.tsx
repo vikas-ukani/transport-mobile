@@ -5,12 +5,12 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 
@@ -104,8 +104,6 @@ const MapLocationModal = ({
           }
         }
 
-
-        console.log('place', place)
         setRegion({
           latitude,
           longitude,
@@ -118,6 +116,7 @@ const MapLocationModal = ({
           setIsLocationPicked(true);
         }
       } catch (error: any) {
+        console.log("error", error);
         setRegion({
           latitude,
           longitude,
@@ -133,12 +132,18 @@ const MapLocationModal = ({
         setIsLocationPicked(false);
       }
     },
-    [show],
+    [show, isSetDefaultCurrentLocation],
   );
 
   const onMarkerDragEnd = (e: any) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
-    setRegion({ ...region, latitude, longitude });
+    setRegion({
+      ...region,
+      latitude,
+      longitude,
+      latitudeDelta: region.latitudeDelta,
+      longitudeDelta: region.longitudeDelta,
+    });
     getAddress(latitude, longitude, true);
   };
 
@@ -150,7 +155,7 @@ const MapLocationModal = ({
           let { status } = await Location.requestForegroundPermissionsAsync();
 
           if (status !== "granted") {
-            toast.error(t("common.pleaseEnableLocation"));
+            toast.error("Permission to access location was denied");
             return;
           }
 
@@ -162,7 +167,7 @@ const MapLocationModal = ({
           }
         } catch (error) {
           toast.dismiss();
-          toast.error(t("common.pleaseEnableLocation"));
+          toast.error("Error accessing location services.");
           console.error("Error getting location:", error);
         }
       })();
@@ -186,7 +191,7 @@ const MapLocationModal = ({
           <Ionicons name="close" size={24} color="#333" />
         </TouchableOpacity>
 
-        {region && (
+        {region && region.latitudeDelta && region.longitudeDelta && (
           <MapView
             style={styles.map}
             region={{
@@ -216,7 +221,7 @@ const MapLocationModal = ({
         )}
 
         <View className="absolute right-5 left-5 bottom-10 p-4 bg-white rounded-xl shadow-lg">
-          <Text style={styles.label}>{t("common.selectAddress")}:</Text>
+          <Text style={styles.label}>Selected Address:</Text>
           <View className="flex-row justify-between items-center">
             <Text
               style={styles.address}
