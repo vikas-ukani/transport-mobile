@@ -1,8 +1,8 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import {
-    FontAwesome5,
-    Ionicons,
-    MaterialCommunityIcons,
+  FontAwesome5,
+  Ionicons,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Picker } from "@react-native-picker/picker";
@@ -13,14 +13,14 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,8 +28,8 @@ import * as yup from "yup";
 import { VEHICLE_RC_PATTERN_VALIDATION } from "../../constants/vehicle";
 import { useAuth } from "../../context/AuthContext";
 import {
-    formatMinorCurrency,
-    useStripeTransportPayment,
+  formatMinorCurrency,
+  useStripeTransportPayment,
 } from "../../hooks/useStripeTransportPayment";
 import apiService, { getBaseUrl } from "../../services/api.service";
 
@@ -281,36 +281,6 @@ const VehicleRegistrationScreen = () => {
     try {
       setLoading(true);
 
-      if (!id && registrationFeeCents != null && registrationFeeCents > 0) {
-        const wb = await apiService.getWalletBalance();
-        if (!wb?.success) {
-          toast.error(wb?.message || t("payment.walletRefreshFailed"));
-          setLoading(false);
-          return;
-        }
-        if ((wb.walletBalanceCents ?? 0) < registrationFeeCents) {
-          setLoading(false);
-          Alert.alert(
-            t("payment.insufficientWalletTitle"),
-            t("payment.insufficientWalletVehicleMessage", {
-              amount: formatMinorCurrency(
-                registrationFeeCents,
-                paymentCurrency,
-              ),
-            }),
-            [
-              { text: t("common.cancel"), style: "cancel" },
-              {
-                text: t("payment.addFundsFromMenu"),
-                style: "default",
-                onPress: () => router.back(),
-              },
-            ],
-          );
-          return;
-        }
-      }
-
       // Upload RC Photos (handles multiple RC images)
       let uploadedRCPhotos: any[] = await Promise.all(
         rcPhotos
@@ -348,6 +318,37 @@ const VehicleRegistrationScreen = () => {
         setLoading(false);
         return;
       }
+
+      if (!id && registrationFeeCents != null && registrationFeeCents > 0) {
+        const wb = await apiService.getWalletBalance();
+        if (!wb?.success) {
+          toast.error(wb?.message || t("payment.walletRefreshFailed"));
+          setLoading(false);
+          return;
+        }
+        if ((wb.walletBalanceCents ?? 0) < registrationFeeCents) {
+          setLoading(false);
+          Alert.alert(
+            t("payment.insufficientWalletTitle"),
+            t("payment.insufficientWalletVehicleMessage", {
+              amount: formatMinorCurrency(
+                registrationFeeCents,
+                paymentCurrency,
+              ),
+            }),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("payment.addFundsFromMenu"),
+                style: "default",
+                onPress: () => router.back(),
+              },
+            ],
+          );
+          return;
+        }
+      }
+
       const newVehicle = {
         ...data,
         referralCode,

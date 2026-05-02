@@ -109,6 +109,7 @@ export function useStripeTransportPayment() {
     const data = (await apiService.createStripePaymentSheet({
       type: "wallet_topup",
       amountCents,
+      preferredPaymentMethod: "GOOGLE_PAY",
     })) as SheetApiResponse;
     return presentPaymentSheetFromApiResponse(data);
   }

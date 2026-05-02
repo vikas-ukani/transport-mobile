@@ -2,30 +2,30 @@ import { toast } from "@backpackapp-io/react-native-toast";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-    DrawerContentScrollView,
-    useDrawerStatus,
-    type DrawerContentComponentProps,
+  DrawerContentScrollView,
+  useDrawerStatus,
+  type DrawerContentComponentProps,
 } from "@react-navigation/drawer";
 import { router } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import {
-    formatMinorCurrency,
-    useStripeTransportPayment,
+  formatMinorCurrency,
+  useStripeTransportPayment,
 } from "../../hooks/useStripeTransportPayment";
 import { apiService } from "../../services/api.service";
 import { IconSymbol } from "../ui/icon-symbol";
