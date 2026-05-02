@@ -27,10 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 import { VEHICLE_RC_PATTERN_VALIDATION } from "../../constants/vehicle";
 import { useAuth } from "../../context/AuthContext";
-import {
-  formatMinorCurrency,
-  useStripeTransportPayment,
-} from "../../hooks/useStripeTransportPayment";
+
 import apiService, { getBaseUrl } from "../../services/api.service";
 
 const schema = yup.object().shape({
@@ -66,7 +63,6 @@ const VehicleRegistrationScreen = () => {
     number | null
   >(null);
   const [paymentCurrency, setPaymentCurrency] = useState("inr");
-  const { payVehicleRegistration } = useStripeTransportPayment();
 
   // Ref for accessing KeyboardAwareScrollView and ScrollView for scrollTo
   const keyboardAwareScrollRef = useRef<any>(null);
@@ -328,23 +324,23 @@ const VehicleRegistrationScreen = () => {
         }
         if ((wb.walletBalanceCents ?? 0) < registrationFeeCents) {
           setLoading(false);
-          Alert.alert(
-            t("payment.insufficientWalletTitle"),
-            t("payment.insufficientWalletVehicleMessage", {
-              amount: formatMinorCurrency(
-                registrationFeeCents,
-                paymentCurrency,
-              ),
-            }),
-            [
-              { text: t("common.cancel"), style: "cancel" },
-              {
-                text: t("payment.addFundsFromMenu"),
-                style: "default",
-                onPress: () => router.back(),
-              },
-            ],
-          );
+          // Alert.alert(
+          //   t("payment.insufficientWalletTitle"),
+          //   t("payment.insufficientWalletVehicleMessage", {
+          //     amount: formatMinorCurrency(
+          //       registrationFeeCents,
+          //       paymentCurrency,
+          //     ),
+          //   }),
+          //   [
+          //     { text: t("common.cancel"), style: "cancel" },
+          //     {
+          //       text: t("payment.addFundsFromMenu"),
+          //       style: "default",
+          //       onPress: () => router.back(),
+          //     },
+          //   ],
+          // );
           return;
         }
       }
@@ -378,53 +374,55 @@ const VehicleRegistrationScreen = () => {
         if (!id) {
           const vehicleId = resData.vehicle?.id;
           if (vehicleId) {
-            const pay = await payVehicleRegistration(vehicleId);
-            if (pay.ok) {
-              try {
-                const w = await apiService.getWalletBalance();
-                if (w?.success) {
-                  await updateUser({
-                    walletBalanceCents: w.walletBalanceCents,
-                  });
-                }
-              } catch {
-                /* ignore */
+            // const pay = await payVehicleRegistration(vehicleId);
+            // if (pay.ok) {
+            try {
+              const w = await apiService.getWalletBalance();
+              if (w?.success) {
+                await updateUser({
+                  walletBalanceCents: w.walletBalanceCents,
+                });
               }
-              reset();
-              setRcPhotos([]);
-              setTruckPhoto([]);
-              router.push("/(apps)/(tabs)/vehicles");
-              toast.success(
-                resData.message || t("vehicles.registrationSubmitted"),
-              );
-              return;
+            } catch {
+              /* ignore */
             }
-            if (pay.canceled) {
-              toast.error(t("payment.canceledUnpaidVehicle"));
-              await apiService.deleteVehicle(vehicleId);
-            } else if (pay.code === "INSUFFICIENT_WALLET") {
-              Alert.alert(
-                t("payment.insufficientWalletTitle"),
-                t("payment.insufficientWalletVehicleMessage", {
-                  amount: formatMinorCurrency(
-                    registrationFeeCents ?? 0,
-                    paymentCurrency,
-                  ),
-                }),
-                [
-                  { text: t("common.cancel"), style: "cancel" },
-                  {
-                    text: t("payment.addFundsFromMenu"),
-                    onPress: () => router.back(),
-                  },
-                ],
-              );
-              await apiService.deleteVehicle(vehicleId);
-            } else {
-              toast.error(pay.message || t("payment.registrationPayFailed"));
-              await apiService.deleteVehicle(vehicleId);
-            }
+            reset();
+            setRcPhotos([]);
+            setTruckPhoto([]);
+            router.push("/(apps)/(tabs)/vehicles");
+            toast.success(
+              resData.message || t("vehicles.registrationSubmitted"),
+            );
+            return;
           }
+          // // If Payment canceld then delete it
+          // if (pay.canceled) {
+          //   toast.error(t("payment.canceledUnpaidVehicle"));
+          //   await apiService.deleteVehicle(vehicleId);
+          // } else if (pay.code === "INSUFFICIENT_WALLET") {
+          //   Alert.alert(
+          //     t("payment.insufficientWalletTitle"),
+          //     t("payment.insufficientWalletVehicleMessage", {
+          //       amount: 0,
+          //       // amount: formatMinorCurrency(
+          //       //   registrationFeeCents ?? 0,
+          //       //   paymentCurrency,
+          //       // ),
+          //     }),
+          //     [
+          //       { text: t("common.cancel"), style: "cancel" },
+          //       {
+          //         text: t("payment.addFundsFromMenu"),
+          //         onPress: () => router.back(),
+          //       },
+          //     ],
+          //   );
+          //   await apiService.deleteVehicle(vehicleId);
+          // } else {
+          //   toast.error(pay.message || t("payment.registrationPayFailed"));
+          //   await apiService.deleteVehicle(vehicleId);
+          // }
+          // }
         }
       } else {
         toast.error(resData.message || "Vehicle registration failed");

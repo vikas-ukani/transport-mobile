@@ -5,10 +5,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import {
-  formatMinorCurrency,
-  useStripeTransportPayment,
-} from '../../hooks/useStripeTransportPayment';
+
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api.service';
 
@@ -19,7 +16,6 @@ const SettingsScreen = () => {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [walletCents, setWalletCents] = useState<number | null>(null);
   const [payCurrency, setPayCurrency] = useState('inr');
-  const { topUpWallet } = useStripeTransportPayment();
 
   const refreshWallet = useCallback(async () => {
     try {
@@ -39,19 +35,6 @@ const SettingsScreen = () => {
     }, [refreshWallet]),
   );
 
-  const onTopUp = async (cents: number) => {
-    if (!process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-      toast.error(t('payment.configurePublishableKey'));
-      return;
-    }
-    const res = await topUpWallet(cents);
-    if (res.ok) {
-      toast.success(t('payment.topUpHint'));
-      setTimeout(refreshWallet, 2500);
-    } else if (!res.canceled) {
-      toast.error(res.message || 'Top-up failed');
-    }
-  };
 
   const changeLanguage = async (lang: string) => {
     // i18n.locale = 'en';
@@ -160,7 +143,7 @@ const SettingsScreen = () => {
           </Text>
           <Text className='mb-4 text-2xl font-bold text-gray-900'>
             {walletCents != null
-              ? formatMinorCurrency(walletCents, payCurrency)
+              ? 0
               : '—'}
           </Text>
           <Text className='mb-3 text-xs text-gray-500'>{t('payment.topUp')}</Text>
@@ -169,11 +152,11 @@ const SettingsScreen = () => {
               <TouchableOpacity
                 key={cents}
                 className='px-4 py-3 rounded-xl bg-primary'
-                onPress={() => onTopUp(cents)}
+                // onPress={() => onTopUp(cents)}
                 activeOpacity={0.8}
               >
                 <Text className='text-sm font-bold text-white'>
-                  + {formatMinorCurrency(cents, payCurrency)}
+                  + 0
                 </Text>
               </TouchableOpacity>
             ))}

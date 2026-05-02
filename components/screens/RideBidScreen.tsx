@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toast } from "@backpackapp-io/react-native-toast";
 import { useTranslation } from "react-i18next";
-import { formatMinorCurrency } from "../../hooks/useStripeTransportPayment";
 import apiService from "../../services/api.service";
 import socketService from "../../services/socket";
 
@@ -175,7 +174,7 @@ export default function RideBidScreen() {
                   {s}
                 </Text>
               </View>
-              <Text className="mt-1 text-xs text-center text-gray-600 px-1">
+              <Text className="px-1 mt-1 text-xs text-center text-gray-600">
                 {s === 1
                   ? t("bidding.stepView")
                   : s === 2
@@ -193,12 +192,12 @@ export default function RideBidScreen() {
           <Text className="mt-2 text-base font-semibold text-gray-900">
             {booking.fromAddress}
           </Text>
-          <View className="h-3 border-l-2 border-dashed border-gray-300 ml-1 my-1" />
+          <View className="my-1 ml-1 h-3 border-l-2 border-gray-300 border-dashed" />
           <Text className="text-base font-semibold text-gray-800">
             {booking.toAddress}
           </Text>
           {booking.estimatedKm ? (
-            <Text className="mt-2 text-sm text-primary font-medium">
+            <Text className="mt-2 text-sm font-medium text-primary">
               ~{booking.estimatedKm} km · {booking.truckType} ·{" "}
               {booking.bodyType}
             </Text>
@@ -210,7 +209,7 @@ export default function RideBidScreen() {
 
         {step === 1 && (
           <TouchableOpacity
-            className="py-4 bg-primary rounded-xl items-center"
+            className="items-center py-4 rounded-xl bg-primary"
             onPress={() => setStep(2)}
           >
             <Text className="text-base font-semibold text-white">
@@ -220,12 +219,12 @@ export default function RideBidScreen() {
         )}
 
         {step >= 2 && (
-          <View className="p-4 bg-white rounded-2xl border border-gray-200 mb-4">
-            <Text className="text-sm font-semibold text-gray-700 mb-2">
+          <View className="p-4 mb-4 bg-white rounded-2xl border border-gray-200">
+            <Text className="mb-2 text-sm font-semibold text-gray-700">
               {t("bidding.yourPriceInr")}
             </Text>
             <TextInput
-              className="border border-gray-200 rounded-xl px-4 py-3 text-lg font-semibold"
+              className="px-4 py-3 text-lg font-semibold rounded-xl border border-gray-200"
               keyboardType="decimal-pad"
               placeholder="e.g. 4500"
               value={bidRupee}
@@ -234,17 +233,14 @@ export default function RideBidScreen() {
             />
             {bidRupee ? (
               <Text className="mt-2 text-sm text-gray-600">
-                {formatMinorCurrency(
-                  rupeesToCents(bidRupee) ?? 0,
-                  "inr",
-                )}
+                0
               </Text>
             ) : null}
-            <Text className="text-sm font-semibold text-gray-700 mt-4 mb-2">
+            <Text className="mt-4 mb-2 text-sm font-semibold text-gray-700">
               {t("bidding.noteOptional")}
             </Text>
             <TextInput
-              className="border border-gray-200 rounded-xl px-4 py-3 text-base"
+              className="px-4 py-3 text-base rounded-xl border border-gray-200"
               placeholder={t("bidding.notePlaceholder")}
               value={note}
               onChangeText={setNote}
@@ -252,7 +248,7 @@ export default function RideBidScreen() {
               editable={!submitting}
             />
             <TouchableOpacity
-              className="mt-4 py-4 bg-primary rounded-xl items-center flex-row justify-center gap-2"
+              className="flex-row gap-2 justify-center items-center py-4 mt-4 rounded-xl bg-primary"
               onPress={onSubmitBid}
               disabled={submitting}
             >
@@ -268,7 +264,7 @@ export default function RideBidScreen() {
         )}
 
         {step === 3 && (
-          <View className="p-4 bg-violet-50 rounded-2xl border border-violet-100 mb-8">
+          <View className="p-4 mb-8 bg-violet-50 rounded-2xl border border-violet-100">
             <Text className="text-base font-semibold text-violet-900">
               {t("bidding.submittedTitle")}
             </Text>

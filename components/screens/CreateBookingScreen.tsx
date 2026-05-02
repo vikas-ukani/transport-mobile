@@ -1,8 +1,8 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import {
-    FontAwesome5,
-    Ionicons,
-    MaterialCommunityIcons,
+  FontAwesome5,
+  Ionicons,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -13,20 +13,20 @@ import { getPreciseDistance } from "geolib";
 import { startTransition, useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    ActivityIndicator,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 import {
-    TRUCK_HEIGHT_OPTIONS,
-    TRUCK_LENGTH_OPTIONS,
-    TRUCK_LOAD_CAPACITY_OPTIONS,
+  TRUCK_HEIGHT_OPTIONS,
+  TRUCK_LENGTH_OPTIONS,
+  TRUCK_LOAD_CAPACITY_OPTIONS,
 } from "../../constants/vehicle";
 
 import { useTranslation } from "react-i18next";
@@ -156,7 +156,7 @@ const CreateBookingScreen = () => {
           // Get current position only if region is not set
           const current = await Location.getCurrentPositionAsync({});
           const { latitude, longitude }: any = current.coords;
-          const [place] = await Location.reverseGeocodeAsync({
+          const [place] = await Location?.reverseGeocodeAsync({
             latitude,
             longitude,
           });
@@ -413,7 +413,7 @@ const CreateBookingScreen = () => {
               <DateTimePicker
                 value={date}
                 mode="date"
-                display="default"
+                display="inline"
                 onChange={(e: any, dateVal: any) => {
                   setShowDatePicker(false);
                   if (dateVal) {
@@ -421,6 +421,7 @@ const CreateBookingScreen = () => {
                     setDate(dateVal);
                   }
                 }}
+                minimumDate={new Date()}
               />
             )}
           </View>

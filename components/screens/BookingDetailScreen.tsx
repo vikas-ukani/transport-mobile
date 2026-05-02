@@ -1,22 +1,19 @@
+import { toast } from "@backpackapp-io/react-native-toast";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { toast } from "@backpackapp-io/react-native-toast";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
-import {
-  formatMinorCurrency,
-  useStripeTransportPayment,
-} from "../../hooks/useStripeTransportPayment";
+
 import apiService from "../../services/api.service";
 import socketService from "../../services/socket";
 
@@ -24,13 +21,12 @@ export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { user, updateUser } = useAuth();
-  const { payForBooking } = useStripeTransportPayment();
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [booking, setBooking] = useState<any>(null);
 
-  const load = useCallback(async () => {
+  const loadBooking = useCallback(async () => {
     if (!id) return;
     try {
       const res = await apiService.getBookingById(id);
@@ -48,14 +44,14 @@ export default function BookingDetailScreen() {
   }, [id, t]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadBooking();
+  }, []);
 
   useEffect(() => {
     if (!id) return;
     socketService.connect();
     socketService.emit("booking:subscribe", id);
-    const refresh = () => load();
+    const refresh = () => loadBooking();
     socketService.on("booking:bid", refresh);
     socketService.on("booking:bid_accepted", refresh);
     socketService.on("booking:payment", refresh);
@@ -65,60 +61,57 @@ export default function BookingDetailScreen() {
       socketService.off("booking:bid_accepted", refresh);
       socketService.off("booking:payment", refresh);
     };
-  }, [id, load]);
+  }, [id, loadBooking]);
 
   const onAccept = async (bidId: string) => {
     if (!id) return;
-    Alert.alert(
-      t("bidding.acceptTitle"),
-      t("bidding.acceptConfirm"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("bidding.accept"),
-          onPress: async () => {
-            setAccepting(bidId);
-            try {
-              const res = await apiService.acceptBookingBid(id, bidId);
-              if (res?.success) {
-                toast.success(res.message || t("bidding.accepted"));
-                setBooking(res.booking);
-              } else {
-                toast.error(res?.message || t("bidding.acceptFailed"));
-              }
-            } catch (e: any) {
-              toast.error(e?.message || t("bidding.acceptFailed"));
-            } finally {
-              setAccepting(null);
+    Alert.alert(t("bidding.acceptTitle"), t("bidding.acceptConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("bidding.accept"),
+        onPress: async () => {
+          setAccepting(bidId);
+          try {
+            const res = await apiService.acceptBookingBid(id, bidId);
+            if (res?.success) {
+              toast.success(res.message || t("bidding.accepted"));
+              setBooking(res.booking);
+            } else {
+              toast.error(res?.message || t("bidding.acceptFailed"));
             }
-          },
+          } catch (e: any) {
+            toast.error(e?.message || t("bidding.acceptFailed"));
+          } finally {
+            setAccepting(null);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const onPay = async () => {
     if (!id) return;
     setPaying(true);
     try {
-      const res = await payForBooking(id);
-      if (res.ok) {
-        toast.success(t("bidding.paidSuccess"));
-        const w = await apiService.getWalletBalance();
-        if (w?.success && typeof w.walletBalanceCents === "number") {
-          await updateUser({ walletBalanceCents: w.walletBalanceCents });
-        }
-        await load();
-      } else if (res.code === "INSUFFICIENT_WALLET") {
-        Alert.alert(
-          t("payment.insufficientWalletTitle"),
-          t("payment.insufficientWalletBody"),
-        );
-      } else if (res.code === "BID_REQUIRED") {
-        toast.error(res.message || t("bidding.payNeedBid"));
-      } else {
-        toast.error(res.message || t("bidding.payFailed"));
-      }
+      await loadBooking();
+      // const res = await payForBooking(id);
+      // if (res.ok) {
+      //   toast.success(t("bidding.paidSuccess"));
+      //   const w = await apiService.getWalletBalance();
+      //   if (w?.success && typeof w.walletBalanceCents === "number") {
+      //     await updateUser({ walletBalanceCents: w.walletBalanceCents });
+      //   }
+      //   // await loadBooking();
+      // } else if (res.code === "INSUFFICIENT_WALLET") {
+      //   Alert.alert(
+      //     t("payment.insufficientWalletTitle"),
+      //     t("payment.insufficientWalletBody"),
+      //   );
+      // } else if (res.code === "BID_REQUIRED") {
+      //   toast.error(res.message || t("bidding.payNeedBid"));
+      // } else {
+      //   toast.error(res.message || t("bidding.payFailed"));
+      // }
     } finally {
       setPaying(false);
     }
@@ -150,7 +143,9 @@ export default function BookingDetailScreen() {
       <ScrollView className="flex-1 px-4 pt-4">
         <View className="p-4 mb-4 bg-white rounded-2xl border border-gray-200">
           <Text className="text-sm text-gray-600">{booking.fromAddress}</Text>
-          <Text className="mt-2 text-sm text-gray-800">{booking.toAddress}</Text>
+          <Text className="mt-2 text-sm text-gray-800">
+            {booking.toAddress}
+          </Text>
           <Text className="mt-2 text-xs text-gray-500">
             {t("booking.status")}: {booking.status} · {booking.paymentStatus}
           </Text>
@@ -158,7 +153,7 @@ export default function BookingDetailScreen() {
 
         {isCustomer && booking.biddingOpen && (
           <View className="mb-2">
-            <Text className="text-base font-bold text-gray-900 mb-2">
+            <Text className="mb-2 text-base font-bold text-gray-900">
               {t("bidding.incomingBids")}
             </Text>
             {pendingBids.length === 0 ? (
@@ -172,8 +167,8 @@ export default function BookingDetailScreen() {
                   <Text className="font-semibold text-gray-900">
                     {b.driver?.name || t("booking.unknownUser")}
                   </Text>
-                  <Text className="text-lg font-bold text-primary mt-1">
-                    {formatMinorCurrency(b.fareOfferCents, "inr")}
+                  <Text className="mt-1 text-lg font-bold text-primary">
+                    0{/* {formatMinorCurrency(b.fareOfferCents, "inr")} */}
                   </Text>
                   {b.note ? (
                     <Text className="mt-2 text-sm text-gray-600">{b.note}</Text>
@@ -201,7 +196,7 @@ export default function BookingDetailScreen() {
           !booking.biddingOpen &&
           booking.paymentStatus !== "Paid" && (
             <TouchableOpacity
-              className="mb-8 py-4 bg-primary rounded-xl items-center flex-row justify-center gap-2"
+              className="flex-row gap-2 justify-center items-center py-4 mb-8 rounded-xl bg-primary"
               onPress={onPay}
               disabled={paying}
             >
@@ -210,10 +205,11 @@ export default function BookingDetailScreen() {
               ) : (
                 <Text className="text-base font-semibold text-white">
                   {t("bidding.payFromWallet", {
-                    amount: formatMinorCurrency(
-                      booking.paymentAmountCents ?? 0,
-                      "inr",
-                    ),
+                    amount: 0,
+                    // amount: formatMinorCurrency(
+                    //   booking.paymentAmountCents ?? 0,
+                    //   "inr",
+                    // ),
                   })}
                 </Text>
               )}

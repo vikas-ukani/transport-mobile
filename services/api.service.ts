@@ -374,27 +374,6 @@ class ApiService {
     }
   }
 
-  async createStripePaymentSheet(body: {
-    type: "booking_payment" | "vehicle_registration" | "wallet_topup";
-    bookingId?: string;
-    vehicleId?: string;
-    amountCents?: number;
-    preferredPaymentMethod?: "UPI" | "GOOGLE_PAY" | "CARD";
-  }) {
-    try {
-      const response = await this.client.post(
-        "/payments/stripe/payment-sheet",
-        body,
-      );
-      return response.data;
-    } catch (err: any) {
-      const data = err?.response?.data;
-      if (data && typeof data === "object") {
-        return data;
-      }
-      throw err;
-    }
-  }
 
   // Upload endpoint
   /**
