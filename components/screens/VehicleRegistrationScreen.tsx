@@ -969,9 +969,7 @@ const VehicleRegistrationScreen = () => {
                   {t("payment.registrationFee")}
                 </Text>
                 <Text className="mb-2 text-base text-gray-600">
-                  {registrationFeeCents != null
-                    ? formatMinorCurrency(registrationFeeCents, paymentCurrency)
-                    : "—"}
+                  {registrationFeeCents != null ? 0 : "—"}
                 </Text>
                 <Text className="text-sm leading-5 text-gray-700">
                   {t("payment.walletOnlyRegistration")}
