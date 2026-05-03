@@ -43,7 +43,7 @@ const HomeHeader = () => {
 
   return (
     <>
-      <View className="flex-row justify-between items-center px-2 py-1 bg-white border-b border-gray-300 shadow">
+      <View className="flex-row justify-between items-center px-2 py-1 border-b border-gray-300 shadow bg-screen">
         <DrawerMenuButton />
         <View className="flex-row gap-2 items-center">
           {__DEV__ && (
@@ -89,33 +89,24 @@ const HomeHeader = () => {
       </View>
       {languageMenuVisible && (
         <View className="overflow-hidden absolute right-8 top-24 z-50 bg-white rounded-xl border border-gray-200 shadow-2xl">
-          <TouchableOpacity
-            className="px-8 py-3.5 active:bg-gray-50"
-            onPress={() => changeLanguage("gu")}
-            activeOpacity={0.7}
-          >
-            <Text className="font-medium text-gray-900">
-              {t("common.gujarati")}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="px-8 py-3.5 border-b border-gray-100 active:bg-gray-50"
-            onPress={() => changeLanguage("hi")}
-            activeOpacity={0.7}
-          >
-            <Text className="font-medium text-gray-900">
-              {t("common.hindi")}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="px-8 py-3.5 border-b border-gray-100 active:bg-gray-50"
-            onPress={() => changeLanguage("en")}
-            activeOpacity={0.7}
-          >
-            <Text className="font-medium text-gray-900">
-              {t("common.english")}
-            </Text>
-          </TouchableOpacity>
+          {[
+            { code: "gu", label: t("common.gujarati") },
+            { code: "hi", label: t("common.hindi") },
+            { code: "en", label: t("common.english") },
+          ].map((lang, idx, arr) => (
+            <TouchableOpacity
+              key={lang.code}
+              className={`px-8 py-3.5 ${idx < arr.length - 1 ? "border-b border-gray-100" : ""} active:bg-gray-50 ${i18n.language === lang.code ? " bg-primary !text-white" : "text-black"}`}
+              onPress={() => changeLanguage(lang.code)}
+              activeOpacity={0.7}
+            >
+              <Text
+                className={`font-medium ${i18n.language === lang.code ? "text-white" : " "}`}
+              >
+                {lang.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
     </>

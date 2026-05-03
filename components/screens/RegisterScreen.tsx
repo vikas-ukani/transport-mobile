@@ -5,14 +5,14 @@ import { Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import {
   ActivityIndicator,
   Image,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import apiService from "../../services/api.service";
 import { styles } from "../../styles/common";
+import CustomInput from "../common/CustomInput";
 
 // OTP Input will be handled manually
 
@@ -35,6 +36,8 @@ const RegisterScreen = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Fix: inputRefs needs to be constant and persist across re-renders
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -95,7 +98,7 @@ const RegisterScreen = () => {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
+        aspect: [4, 4],
         quality: 0.8,
       });
 
@@ -124,7 +127,7 @@ const RegisterScreen = () => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
+        aspect: [4, 4],
         quality: 1,
       });
 
@@ -220,7 +223,7 @@ const RegisterScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-screen">
       <View className="flex-1 px-5 mt-4">
         <TouchableOpacity
           onPress={() => router.push("/(auth)/login")}
@@ -241,11 +244,13 @@ const RegisterScreen = () => {
           </TouchableOpacity>
         </View>
         <KeyboardAwareScrollView
-        className="flex-1 bg-white"
-        contentContainerStyle={{ flexGrow: 1 }}
-        enableOnAndroid
-        extraScrollHeight={20}
-        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          enableOnAndroid
+          extraScrollHeight={20}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View className="mt-4 mb-4">
             <Text className="mb-2 text-sm font-medium text-gray-700">
               {t("register.userType")}
@@ -255,7 +260,7 @@ const RegisterScreen = () => {
                 className={`flex-1 py-3 rounded-lg border-2 ${
                   userType === "customer"
                     ? "border-purple-600 bg-purple-50"
-                    : "border-gray-300"
+                    : "border-gray-500"
                 }`}
                 onPress={() => {
                   setUserType("customer");
@@ -263,10 +268,10 @@ const RegisterScreen = () => {
                 }}
               >
                 <Text
-                  className={`text-center font-semibold ${
+                  className={`text-center   ${
                     userType === "customer"
-                      ? "text-purple-600"
-                      : "text-gray-600"
+                      ? "text-purple-600 font-semibold"
+                      : "text-gray-600 font-normal"
                   }`}
                 >
                   {t("register.customer")}
@@ -276,7 +281,7 @@ const RegisterScreen = () => {
                 className={`flex-1 py-3 rounded-lg border-2 ${
                   userType === "driver"
                     ? "border-purple-600 bg-purple-50"
-                    : "border-gray-300"
+                    : "border-gray-500"
                 }`}
                 onPress={() => {
                   setValue("type", "driver");
@@ -284,8 +289,10 @@ const RegisterScreen = () => {
                 }}
               >
                 <Text
-                  className={`text-center font-semibold ${
-                    userType === "driver" ? "text-purple-600" : "text-gray-600"
+                  className={`text-center ${
+                    userType === "driver"
+                      ? "text-purple-600 font-semibold"
+                      : "text-gray-600 font-normal"
                   }`}
                 >
                   {t("register.driver")}
@@ -294,58 +301,24 @@ const RegisterScreen = () => {
             </View>
           </View>
 
-          <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t("common.name")}
-            </Text>
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className="px-4 py-3 text-base rounded-lg border border-gray-300"
-                  placeholder={t("common.name")}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  autoCapitalize="words"
-                />
-              )}
-            />
-            {errors.name && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.name.message}
-              </Text>
-            )}
-          </View>
-
-          <View className="">
-            <Text className="text-sm font-medium text-gray-700">
-              {t("common.email")}
-            </Text>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className="px-4 py-3 text-base rounded-lg border border-gray-300"
-                  placeholder={t("common.email")}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  editable={!otpVerified}
-                  // Fix: use 'editable' prop instead of 'readOnly' (not supported)
-                />
-              )}
-            />
-            {errors.email && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.email.message}
-              </Text>
-            )}
-          </View>
+          <CustomInput
+            label={t("common.name")}
+            name="name"
+            control={control}
+            errors={errors}
+            placeholder={t("common.name")}
+            autoCapitalize="words"
+            frontIcon="person-outline"
+          />
+          <CustomInput
+            label={t("common.email")}
+            name="email"
+            control={control}
+            errors={errors}
+            placeholder={t("common.email")}
+            autoCapitalize="none"
+            frontIcon="at"
+          />
 
           {otpVerified ? (
             <Text className="mb-2 text-green-600 text-start">
@@ -454,87 +427,49 @@ const RegisterScreen = () => {
             </View>
           )}
 
-          <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t("common.mobile")}
-            </Text>
-            <Controller
-              control={control}
-              name="mobile"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className="px-4 py-3 text-base rounded-lg border border-gray-300"
-                  placeholder={t("common.mobile")}
-                  value={value}
-                  onChangeText={(text) => onChange(text.replace(/[^0-9]/g, ""))}
-                  onBlur={onBlur}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                />
-              )}
-            />
-            {errors.mobile && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.mobile.message}
-              </Text>
-            )}
-          </View>
+          <CustomInput
+            label={t("common.mobile")}
+            name="mobile"
+            control={control}
+            errors={errors}
+            placeholder={t("common.mobile")}
+            autoCapitalize="none"
+            keyboardType="phone-pad"
+            maxLength={10}
+            frontIcon="phone-portrait"
+          />
 
-          <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t("common.password")}
-            </Text>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className="px-4 py-3 text-base rounded-lg border border-gray-300"
-                  placeholder={t("common.password")}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  secureTextEntry={true}
-                />
-              )}
-            />
-            {errors.password && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.password.message}
-              </Text>
-            )}
-          </View>
+          <CustomInput
+            label={t("common.password")}
+            name="password"
+            control={control}
+            errors={errors}
+            placeholder={t("common.password")}
+            maxLength={10}
+            frontIcon="lock-closed-outline"
+            backIcon={showPassword ? "eye-outline" : "eye-off-outline"}
+            onBackIconPress={() => setShowPassword(!showPassword)}
+            secureTextEntry={!showPassword}
+          />
 
-          <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t("common.confirmPassword")}
-            </Text>
-            <Controller
-              control={control}
-              name="confirmPassword"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  className="px-4 py-3 text-base rounded-lg border border-gray-300"
-                  placeholder={t("common.confirmPassword")}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  secureTextEntry={true}
-                />
-              )}
-            />
-            {errors.confirmPassword && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.confirmPassword.message}
-              </Text>
-            )}
-          </View>
+          <CustomInput
+            label={t("common.confirmPassword")}
+            name="confirmPassword"
+            control={control}
+            errors={errors}
+            placeholder={t("common.confirmPassword")}
+            maxLength={10}
+            frontIcon="lock-closed-outline"
+            backIcon={showPassword ? "eye-outline" : "eye-off-outline"}
+            onBackIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            secureTextEntry={!showConfirmPassword}
+          />
 
           <View className="mb-4">
             <Text className="mb-2 text-sm font-medium text-gray-700">
               {t("common.profilePhoto")}
             </Text>
-            
+
             <View className="flex-row gap-2 justify-evenly w-11/12">
               <TouchableOpacity
                 className="flex-row gap-2 justify-center items-center p-3 w-1/2 bg-gray-100 rounded-lg border border-gray-300"
@@ -590,7 +525,7 @@ const RegisterScreen = () => {
           </View>
 
           {/* Sign Up Link */}
-          <View style={styles.signUpContainer} className="!mb-6">
+          <View style={styles.signUpContainer} className="!mb-6 gap-2">
             <Text style={styles.signUpText}>{t("login.haveAccount")}</Text>
             <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
               <Text style={styles.signUpLink}>{t("common.login")}</Text>

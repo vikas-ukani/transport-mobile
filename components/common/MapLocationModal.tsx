@@ -5,30 +5,19 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { TextInput } from "react-native-gesture-handler";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  infoBox: {
-    position: "absolute",
-    bottom: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
   label: { fontWeight: "600", marginBottom: 4 },
   address: { fontSize: 14, color: "#333" },
 });
@@ -116,7 +105,7 @@ const MapLocationModal = ({
           setIsLocationPicked(true);
         }
       } catch (error: any) {
-        console.log("error", error);
+        console.log("error reverseGeocodeAsync: ", error.message);
         setRegion({
           latitude,
           longitude,
@@ -124,6 +113,7 @@ const MapLocationModal = ({
           longitudeDelta: 0.01,
           formattedAddress: "",
         });
+        toast.remove();
         toast.error(
           error?.message?.includes("timeout")
             ? "Reverse geocoding timed out. Please try again."
@@ -155,6 +145,7 @@ const MapLocationModal = ({
           let { status } = await Location.requestForegroundPermissionsAsync();
 
           if (status !== "granted") {
+            toast.remove();
             toast.error("Permission to access location was denied");
             return;
           }
@@ -221,17 +212,33 @@ const MapLocationModal = ({
         )}
 
         <View className="absolute right-5 left-5 bottom-10 p-4 bg-white rounded-xl shadow-lg">
-          <Text style={styles.label}>Selected Address:</Text>
           <View className="flex-row justify-between items-center">
-            <Text
-              style={styles.address}
-              className="flex-1 pr-3"
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {region?.formattedAddress ||
-                t("common.moveMarkerToSelectLocation")}
-            </Text>
+            <TextInput
+              style={[styles.address, { minHeight: 40 }]}
+              className="flex-1 py-1 pr-3 px-5 text-base font-medium bg-white rounded-xl border-2 border-gray-200 !min-h-[60px] align-text-top"
+              value={
+                typeof region?.formattedAddress === "string"
+                  ? region.formattedAddress
+                  : ""
+              }
+              placeholder={t("common.moveMarkerToSelectLocation")}
+              multiline
+              numberOfLines={4}
+              onChangeText={(text) => {
+                // If you have setRegion in parent, lift the handler up; else do it via local state (may need useState in parent).
+                if (typeof setRegion === "function") {
+                  setRegion({
+                    ...region,
+                    formattedAddress: text,
+                  });
+                } else if (region) {
+                  region.formattedAddress = text;
+                }
+              }}
+              editable={true}
+              defaultValue={region?.formattedAddress || ""}
+            />
+
             <Pressable
               style={{
                 marginLeft: 8,
@@ -239,7 +246,25 @@ const MapLocationModal = ({
                 borderRadius: 16,
                 backgroundColor: "#f0f0f0",
               }}
+              className="!bg-primaryLight disabled:!bg-gray-100"
+              disabled={
+                !region.formattedAddress || region.formattedAddress === ""
+              }
               onPress={() => {
+                console.log("region.formattedAddress", region.formattedAddress);
+                if (
+                  !region.formattedAddress ||
+                  region.formattedAddress === ""
+                ) {
+                  console.log(
+                    '"Please enter full location."',
+                    "Please enter full location.",
+                  );
+                  toast.dismiss();
+                  toast.error("Please enter full location.");
+                  return;
+                }
+
                 onLocationSelected({
                   latitude: region?.latitude || 0,
                   longitude: region?.longitude || 0,
@@ -250,7 +275,13 @@ const MapLocationModal = ({
               <Ionicons
                 name="checkmark-sharp"
                 size={24}
-                color={isLocationPicked ? "green" : "gray"}
+                className={
+                  "!text-white"
+                  // isLocationPicked &&
+                  // (!region.formattedAddress || region.formattedAddress === "")
+                  //   ? ""
+                  //   : "!text-black"
+                }
               />
             </Pressable>
           </View>

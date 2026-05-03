@@ -52,7 +52,7 @@ const PostDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView className='flex-1 bg-white'>
+    <SafeAreaView className='flex-1 bg-screen'>
       <View className='flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
         <TouchableOpacity
           onPress={() => router.push('/(apps)/(tabs)')}

@@ -119,7 +119,7 @@ export default function BookingDetailScreen() {
 
   if (loading || !booking) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
+      <SafeAreaView className="flex-1 justify-center items-center bg-screen">
         <ActivityIndicator size="large" color="#9333ea" />
       </SafeAreaView>
     );
@@ -130,7 +130,7 @@ export default function BookingDetailScreen() {
     booking.bids?.filter((b: any) => b.status === "pending") ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-screen" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-100">
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="arrow-back" size={24} color="#111827" />

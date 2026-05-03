@@ -73,7 +73,7 @@ const ProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView className='flex-1 bg-gray-50'>
+    <SafeAreaView className='flex-1 bg-screen'>
       <ScrollView className='flex-1' showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <ConfirmPopup

@@ -149,6 +149,7 @@ const CreateBookingScreen = () => {
           // let { status } = await Location.requestForegroundPermissionsAsync();
 
           if (status !== "granted") {
+            toast.remove();
             toast.error(t("common.pleaseEnableLocation"));
             return;
           }
@@ -239,8 +240,8 @@ const CreateBookingScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
+    <SafeAreaView className="flex-1 bg-screen">
+      <View className="flex-row items-center px-5 py-4 border-b border-gray-100 shadow-sm">
         <TouchableOpacity
           onPress={() => router.push("/(apps)/bookings")}
           className="flex-row gap-4 justify-start items-center p-2 -ml-2"
@@ -285,13 +286,17 @@ const CreateBookingScreen = () => {
               name="fromAddress"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  className="px-5 text-base font-medium bg-white rounded-xl border-2 border-gray-200"
+                  className="px-5 text-base font-medium   rounded-xl border-2 border-gray-200 !min-h-[60px]"
                   placeholder={t("booking.selectFromLocation")}
                   textAlignVertical="top"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
                   placeholderTextColor="#9CA3AF"
+                  multiline
+                  readOnly
+                  numberOfLines={3}
+                  style={{ minHeight: 80, textAlignVertical: "top" }}
                 />
               )}
             />
@@ -339,13 +344,16 @@ const CreateBookingScreen = () => {
               name="toAddress"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  className="px-5 text-base font-medium bg-white rounded-xl border-2 border-gray-200"
+                  className="px-5 text-base font-medium bg-white rounded-xl border-2 border-gray-200 !min-h-[60px] align-text-top"
                   placeholder={t("booking.selectToLocation")}
                   textAlignVertical="top"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
                   placeholderTextColor="#9CA3AF"
+                  multiline
+                  readOnly
+                  numberOfLines={3}
                 />
               )}
             />
@@ -585,7 +593,7 @@ const CreateBookingScreen = () => {
               control={control}
               name="truckLength"
               render={({ field: { onChange, value } }) => (
-                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200">
+                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200 text-dark">
                   <Picker
                     selectedValue={value}
                     onValueChange={onChange}
@@ -618,7 +626,7 @@ const CreateBookingScreen = () => {
               control={control}
               name="truckHeight"
               render={({ field: { onChange, value } }) => (
-                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200">
+                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200 text-dark">
                   <Picker
                     selectedValue={value}
                     onValueChange={onChange}
@@ -651,7 +659,7 @@ const CreateBookingScreen = () => {
               control={control}
               name="loadCapacity"
               render={({ field: { onChange, value } }) => (
-                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200">
+                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200 text-dark">
                   <Picker
                     selectedValue={value}
                     onValueChange={onChange}

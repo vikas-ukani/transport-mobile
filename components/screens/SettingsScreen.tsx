@@ -55,7 +55,7 @@ const SettingsScreen = () => {
   };
 
   return (
-    <SafeAreaView className='flex-1 bg-gray-50'>
+    <SafeAreaView className='flex-1 bg-screen'>
       <View className='flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm'>
         <TouchableOpacity
           onPress={() => router.back()}
