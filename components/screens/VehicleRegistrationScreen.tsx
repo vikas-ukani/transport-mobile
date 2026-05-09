@@ -14,7 +14,6 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   Text,
@@ -101,11 +100,11 @@ const VehicleRegistrationScreen = () => {
   useEffect(() => {
     if (id) return;
     let alive = true;
-    apiService.getStripeConfig().then((c: any) => {
-      if (!alive || !c?.success) return;
-      setRegistrationFeeCents(c.vehicleRegistrationFeeCents ?? null);
-      setPaymentCurrency(c.currency || "inr");
-    });
+    // apiService.getStripeConfig().then((c: any) => {
+    //   if (!alive || !c?.success) return;
+    //   setRegistrationFeeCents(c.vehicleRegistrationFeeCents ?? null);
+    //   setPaymentCurrency(c.currency || "inr");
+    // });
     return () => {
       alive = false;
     };
@@ -172,7 +171,7 @@ const VehicleRegistrationScreen = () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        aspect: [4, 3],
+        aspect: [4, 4],
         quality: 1,
         selectionLimit: type === "rc" ? 2 : 4,
       });
@@ -208,7 +207,7 @@ const VehicleRegistrationScreen = () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         allowsMultipleSelection: true,
-        aspect: [4, 3],
+        aspect: [4, 4],
         quality: 1,
         selectionLimit: type === "rc" ? 2 : 4,
       });
@@ -455,9 +454,9 @@ const VehicleRegistrationScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 !bg-screen">
       <KeyboardAwareScrollView
-        className="flex-1 bg-white"
+        className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
         enableOnAndroid
         extraScrollHeight={20}
@@ -466,7 +465,7 @@ const VehicleRegistrationScreen = () => {
       >
         <View
           ref={formScrollRef}
-          className="flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm"
+          className="flex-row items-center px-5 py-4 border-b border-gray-100 shadow-sm"
         >
           <TouchableOpacity
             onPress={() => router.back()}
@@ -480,7 +479,7 @@ const VehicleRegistrationScreen = () => {
           </TouchableOpacity>
           <View style={{ width: 40 }} />
         </View>
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1">
           <ScrollView
             className="flex-1 px-5 py-6"
             showsVerticalScrollIndicator={false}
@@ -503,7 +502,7 @@ const VehicleRegistrationScreen = () => {
                 name="driverName"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
-                    className="px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200"
+                    className="px-5 py-4 text-base font-medium rounded-xl border-2 border-gray-200"
                     placeholder={t("vehicles.driverName")}
                     value={value}
                     onChangeText={onChange}
@@ -532,7 +531,7 @@ const VehicleRegistrationScreen = () => {
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
                     keyboardType="phone-pad"
-                    className="px-5 py-4 text-base font-medium bg-white rounded-xl border-2 border-gray-200"
+                    className="px-5 py-4 text-base font-medium rounded-xl border-2 border-gray-200"
                     placeholder={t("vehicles.mobileNumber")}
                     value={value}
                     onChangeText={onChange}
@@ -840,7 +839,7 @@ const VehicleRegistrationScreen = () => {
                 control={control}
                 name="truckLength"
                 render={({ field: { onChange, value } }) => (
-                  <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200">
+                  <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200 text-dark">
                     <Picker
                       selectedValue={value}
                       onValueChange={onChange}
@@ -873,7 +872,7 @@ const VehicleRegistrationScreen = () => {
                 control={control}
                 name="loadCapacity"
                 render={({ field: { onChange, value } }) => (
-                  <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200">
+                  <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200 text-dark">
                     <Picker
                       selectedValue={value}
                       onValueChange={onChange}

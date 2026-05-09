@@ -26,10 +26,12 @@
       ],
       "expo-build-properties",
       [
-        "@stripe/stripe-react-native",
+        "expo-location",
         {
-          "merchantIdentifier": "merchant.com.vikasdev.transport",
-          "enableGooglePay": true
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to connect you with client.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
         }
       ]
     ],
