@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import DrawerMenuButton from "./DrawerMenuButton";
 
@@ -45,6 +45,16 @@ const HomeHeader = () => {
     <>
       <View className="flex-row justify-between items-center px-2 py-1 border-b border-gray-300 shadow bg-screen">
         <DrawerMenuButton />
+        <View className="flex-row items-center -ml-28">
+          <Image
+            source={require("../../assets/logo.png")}
+            style={{ width: 40, height: 40 }}
+            resizeMode="contain"
+          />
+          <Text className="text-lg font-bold text-primary">Safar</Text>
+          <Text className="text-lg font-bold text-yellow">Path</Text>
+        </View>
+
         <View className="flex-row gap-2 items-center">
           {__DEV__ && (
             <TouchableOpacity

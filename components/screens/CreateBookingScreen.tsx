@@ -208,6 +208,7 @@ const CreateBookingScreen = () => {
         return;
       } else {
         toast.success(resData.message || t("common.BookingRequestSubmited"));
+        router.push("/(apps)/bookings");
       }
 
       // const bookingId = resData.booking?.id;

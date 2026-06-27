@@ -2,12 +2,12 @@ import { toast } from "@backpackapp-io/react-native-toast";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { SYSTEM_DEFAULT_LANGUAGE } from "../i18n/config";
@@ -31,7 +31,7 @@ export interface User {
   latitude?: number;
   longitude?: number;
   /** In-app wallet in minor units (e.g. paise / cents). From login or `/me`. */
-  walletBalanceCents?: number;
+  walletAmount?: number;
 }
 
 interface AuthContextType {
@@ -45,6 +45,7 @@ interface AuthContextType {
   ) => Promise<{ error?: string } | void>;
   register: (userData: any, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshWalletBalance: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
 }
 
@@ -65,7 +66,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Connect socket when user is authenticated
   useEffect(() => {
     if (user) {
-      console.log("here", user);
       i18n.changeLanguage(user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE);
       // i18n.defaultLocale = user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE;
       socketService.connect();
@@ -189,6 +189,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     });
   }, []);
 
+  const refreshWalletBalance = useCallback(async () => {
+    try {
+      const user = await apiService.getWalletBalance();
+      console.log('Updating User wallet balance', user)
+      await updateUser({
+        walletAmount: user.walletAmount || 0,
+      });
+    } catch (error: any) {
+      console.log(
+        "Catch Wallet Refresh: ",
+        error.message || "Wallet update failed.",
+      );
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -200,6 +215,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         logout,
         updateUser,
         me,
+        refreshWalletBalance,
       }}
     >
       {children}

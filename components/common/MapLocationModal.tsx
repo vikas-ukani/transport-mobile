@@ -8,16 +8,27 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+  marker: {
+    height: 48,
+    width: 48,
+  },
+  // markerFixed: {
+  //   // left: "50%",
+  //   // marginLeft: -24,
+  //   // marginTop: -48,
+  //   // position: "absolute",
+  //   top: "50%",
+  //   zIndex: 100,
+  // },
   label: { fontWeight: "600", marginBottom: 4 },
   address: { fontSize: 14, color: "#333" },
 });
@@ -165,6 +176,22 @@ const MapLocationModal = ({
     }, [getAddress, region]),
   );
 
+  // Corrected and optimized handler for region change completion
+  const onRegionChangeComplete = useCallback(
+    (newRegion: Region) => {
+      // setRegion((prev) => ({
+      //   ...prev,
+      //   ...newRegion,
+      //   // Maintain deltas if available, or use new ones
+      //   latitudeDelta: newRegion.latitudeDelta ?? prev.latitudeDelta,
+      //   longitudeDelta: newRegion.longitudeDelta ?? prev.longitudeDelta,
+      // }));
+      // Use the correct new lat/lng, not old props
+      getAddress(newRegion.latitude, newRegion.longitude, true);
+    },
+    []
+  );
+
   return (
     <View className="overflow-hidden rounded-xl border border-gray-100">
       <Modal
@@ -174,6 +201,13 @@ const MapLocationModal = ({
         onRequestClose={onHide}
         style={styles.container}
       >
+        <View className="absolute top-[50%] left-[50%] rig z-10 p-2">
+          <Ionicons
+            name="location-sharp"
+            size={26}
+            className="!text-danger"
+          ></Ionicons>
+        </View>
         <TouchableOpacity
           className="absolute top-5 right-5 z-10 p-2 bg-white rounded-full shadow-lg"
           onPress={onHide}
@@ -181,33 +215,35 @@ const MapLocationModal = ({
         >
           <Ionicons name="close" size={24} color="#333" />
         </TouchableOpacity>
-
         {region && region.latitudeDelta && region.longitudeDelta && (
           <MapView
             style={styles.map}
+            // style={styles.map}
             region={{
               latitude: region.latitude || 0,
               longitude: region.longitude || 0,
               latitudeDelta: region.latitudeDelta || 0.01,
               longitudeDelta: region.longitudeDelta || 0.01,
             }}
-            onPress={onMarkerDragEnd}
+            // onPress={onMarkerDragEnd}
             provider={PROVIDER_GOOGLE}
+            onRegionChangeComplete={onRegionChangeComplete}
           >
-            <Marker
+            {/* <Marker
               coordinate={{
                 latitude: region?.latitude || 0,
                 longitude: region?.longitude || 0,
               }}
               description="Hold and Drag to select location"
               draggable
+              style={styles.marker}
               centerOffset={{
                 x: Location.Accuracy.High,
                 y: Location.Accuracy.High,
               }}
               onDragEnd={onMarkerDragEnd}
               title="Selected Location"
-            />
+            /> */}
           </MapView>
         )}
 

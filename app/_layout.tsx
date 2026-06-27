@@ -1,5 +1,5 @@
 import { Toasts } from "@backpackapp-io/react-native-toast";
-import { StripeProvider } from "@stripe/stripe-react-native";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -8,9 +8,7 @@ import AppErrorBoundary from "../components/AppErrorBoundary";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import "../global.css";
 import "../i18n/config";
-
-const stripePublishableKey =
-  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+import client from "../lib/client";
 
 function RootNavigator() {
   const { isAuthenticated } = useAuth();
@@ -54,11 +52,7 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AppErrorBoundary>
-      <StripeProvider
-        publishableKey={stripePublishableKey}
-        merchantIdentifier="merchant.com.vikasdev.transport"
-        urlScheme="mobile"
-      >
+      <QueryClientProvider client={client}>
         <AuthProvider>
           <StatusBar style="inverted" />
           <GestureHandlerRootView>
@@ -77,7 +71,7 @@ export default function RootLayout() {
             />
           </GestureHandlerRootView>
         </AuthProvider>
-      </StripeProvider>
+      </QueryClientProvider>
     </AppErrorBoundary>
   );
 }

@@ -1,17 +1,17 @@
+import { toast } from "@backpackapp-io/react-native-toast";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { toast } from "@backpackapp-io/react-native-toast";
-import { useTranslation } from "react-i18next";
 import apiService from "../../services/api.service";
 import socketService from "../../services/socket";
 
@@ -34,14 +34,10 @@ export default function RideBidScreen() {
       const res = await apiService.getBookingById(id);
       if (res?.success && res.booking) {
         setBooking(res.booking);
-        setBidsCount(
-          res.booking._count?.bids ?? res.booking.bids?.length ?? 0,
-        );
-        const mine = res.booking.bids?.find(
-          (b: any) => b.status === "pending",
-        );
-        if (mine?.fareOfferCents) {
-          setBidRupee((mine.fareOfferCents / 100).toFixed(0));
+        setBidsCount(res.booking._count?.bids ?? res.booking.bids?.length ?? 0);
+        const mine = res.booking.bids?.find((b: any) => b.status === "pending");
+        if (mine?.amount) {
+          setBidRupee((mine.amount / 100).toFixed(0));
         }
       } else {
         toast.error(res?.message || t("bidding.loadFailed"));
@@ -103,7 +99,7 @@ export default function RideBidScreen() {
     setSubmitting(true);
     try {
       const res = await apiService.placeBookingBid(id, {
-        fareOfferCents: cents,
+        amount: cents,
         note: note.trim() || undefined,
       });
       if (res?.success) {
@@ -123,7 +119,7 @@ export default function RideBidScreen() {
   if (loading || !booking) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-screen">
-        <ActivityIndicator size="large" color="#9333ea" />
+        <ActivityIndicator size="large" className="!text-primary" />
       </SafeAreaView>
     );
   }
@@ -140,9 +136,7 @@ export default function RideBidScreen() {
           </Text>
         </View>
         <View className="p-6">
-          <Text className="text-base text-gray-700">
-            {t("bidding.closed")}
-          </Text>
+          <Text className="text-base text-gray-700">{t("bidding.closed")}</Text>
         </View>
       </SafeAreaView>
     );
@@ -159,7 +153,10 @@ export default function RideBidScreen() {
         </Text>
       </View>
 
-      <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        className="flex-1 px-4 pt-4"
+        keyboardShouldPersistTaps="handled"
+      >
         <View className="flex-row justify-between mb-6">
           {STEPS.map((s) => (
             <View key={s} className="flex-1 items-center">
@@ -232,9 +229,7 @@ export default function RideBidScreen() {
               editable={!submitting}
             />
             {bidRupee ? (
-              <Text className="mt-2 text-sm text-gray-600">
-                0
-              </Text>
+              <Text className="mt-2 text-sm text-gray-600">0</Text>
             ) : null}
             <Text className="mt-4 mb-2 text-sm font-semibold text-gray-700">
               {t("bidding.noteOptional")}

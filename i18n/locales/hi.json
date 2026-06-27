@@ -76,7 +76,7 @@
   },
   "wallet": {
     "addFunds": "राशि जोड़ें",
-    "stripeBalanceHint": "इस मेनू को खोलने या टॉप-अप के बाद शेष अपडेट होता है।"
+    "walletBalanceHint": "इस मेनू को खोलने या टॉप-अप के बाद शेष अपडेट होता है।"
   },
   "login": {
     "title": "वापसी पर स्वागत है",
@@ -282,7 +282,6 @@
     "registrationPayFailed": "पंजीकरण भुगतान पूरा नहीं हो सका।",
     "bookingHold": "बुकिंग भुगतान",
     "registrationFee": "पंजीकरण शुल्क",
-    "configurePublishableKey": "Stripe भुगतान के लिए EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY सेट करें।",
     "canceledUnpaidBooking": "भुगतान रद्द — बुकिंग अवैतनिक के रूप में सहेजी गई।",
     "canceledUnpaidVehicle": "भुगतान रद्द — बाद में सेटिंग्स से शुल्क चुकाएं।",
     "walletTitle": "वॉलेट",

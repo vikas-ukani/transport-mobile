@@ -119,12 +119,6 @@ const MyBookingScreen = () => {
     }
   };
 
-  const filteredBookings = [...bookings].sort((a, b) => {
-    if (a.status < b.status) return 1;
-    if (a.status > b.status) return -1;
-    return 0;
-  });
-
   return (
     <SafeAreaView className="flex-1 bg-screen">
       <ConfirmPopup
@@ -169,41 +163,48 @@ const MyBookingScreen = () => {
           <RefreshControl refreshing={loading} onRefresh={onRefresh} />
         }
       >
-        {filteredBookings.length > 0 ? (
-          filteredBookings.map((booking: Booking) => (
+        {bookings.length > 0 ? (
+          bookings.map((booking: Booking) => (
             <View
               key={`booking-${booking.id}-${booking.createdAt ?? ""}`}
-              className="p-5 mb-4 bg-white rounded-xl border border-gray-100 shadow-md"
+              className="p-5 mb-4 rounded-xl border border-gray-100 shadow-md bg-secondScreen"
             >
               <View className="flex-row justify-between items-start mb-4">
-                <View className="flex-1 mr-3">
-                  <View className="flex-row items-center mb-2">
-                    <Ionicons
-                      name="location"
-                      size={18}
-                      className="!text-primary"
-                    />
-                    <Text
-                      className="ml-2 text-base font-bold text-gray-900"
-                      numberOfLines={1}
-                    >
-                      {booking?.fromAddress}
-                    </Text>
+                <TouchableOpacity
+                  className=""
+                  onPress={() => router.push(`/(apps)/bookings/${booking.id}`)}
+                  activeOpacity={0.8}
+                  accessibilityLabel={t("bidding.bookingDetail")}
+                >
+                  <View className="flex-1 mr-3">
+                    <View className="flex-row items-center mb-2">
+                      <Ionicons
+                        name="location"
+                        size={18}
+                        className="!text-primary"
+                      />
+                      <Text
+                        className="ml-2 text-base font-bold text-gray-900"
+                        numberOfLines={1}
+                      >
+                        {booking?.fromAddress}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <Ionicons
+                        name="location"
+                        size={18}
+                        className="!text-primaryLight/50"
+                      />
+                      <Text
+                        className="ml-2 text-base font-bold text-gray-900"
+                        numberOfLines={1}
+                      >
+                        {booking.toAddress}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-row items-center">
-                    <Ionicons
-                      name="location"
-                      size={18}
-                      className="!text-primaryLight/50"
-                    />
-                    <Text
-                      className="ml-2 text-base font-bold text-gray-900"
-                      numberOfLines={1}
-                    >
-                      {booking.toAddress}
-                    </Text>
-                  </View>
-                </View>
+                </TouchableOpacity>
               </View>
               <View className="flex-row gap-2 justify-between">
                 <View className="pt-4 space-y-2 border-t border-gray-100">
@@ -275,18 +276,18 @@ const MyBookingScreen = () => {
                 <View className="flex-col gap-1 justify-evenly">
                   <View
                     className={`px-3 py-1.5 !rounded-lg ${
-                      booking.status === "success"
+                      booking.status === "ACTIVE"
                         ? "bg-green-100"
-                        : booking.status === "finished"
+                        : booking.status === "COMPLETED"
                           ? " !rounded-lg bg-primary/30"
                           : "bg-yellow-100"
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        booking.status === "success"
+                        booking.status === "COMPLETED"
                           ? "text-green-700"
-                          : booking.status === "finished"
+                          : booking.status === "FINISHED"
                             ? "text-primary"
                             : "text-yellow-700"
                       }`}
@@ -295,7 +296,7 @@ const MyBookingScreen = () => {
                     </Text>
                   </View>
                   <View className="flex-row gap-3 justify-end mt-2">
-                    {["pending"].includes(booking.status) && (
+                    {["PENDING"].includes(booking.status) && (
                       <TouchableOpacity
                         className="p-2 bg-purple-50 rounded-full"
                         onPress={() =>
@@ -305,13 +306,13 @@ const MyBookingScreen = () => {
                         accessibilityLabel={t("bidding.bookingDetail")}
                       >
                         <Ionicons
-                          name="pricetags-outline"
+                          name="eye-outline"
                           size={20}
                           className="text-primary"
                         />
                       </TouchableOpacity>
                     )}
-                    {["pending"].includes(booking.status) && (
+                    {["PENDING"].includes(booking.status) && (
                       <TouchableOpacity
                         className="p-2 bg-red-50 rounded-full"
                         onPress={() => setShowConfirmDelete(booking.id)}

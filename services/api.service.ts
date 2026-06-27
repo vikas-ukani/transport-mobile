@@ -58,8 +58,11 @@ class ApiService {
     this.client.interceptors.response.use(
       (response: any) => response,
       async (error: AxiosError) => {
-        console.log(`API Crash Res:: [${error.config?.url}]`, error.response?.data);
-   
+        console.log(
+          `API Crash Res:: [${error.config?.url}]`,
+          error.response?.data,
+        );
+
         const resData: any = error.response?.data;
         if (
           // error.response?.status === 401 ||
@@ -199,12 +202,74 @@ class ApiService {
     return response.data;
   }
 
-  async getDriverRides({ page, limit }: { page: number; limit: number }) {
-    console.log("calling driver rides");
+  async getDriverRides({
+    page,
+    limit,
+    tab = "all",
+  }: {
+    page: number;
+    limit: number;
+    tab: string;
+  }) {
     const response = await this.client.get(
-      `/driver-rides?page=${page}&limit=${limit}`,
+      `/driver-rides?page=${page}&limit=${limit}&tab=${tab}`,
     );
     return response.data;
+  }
+  async getMyActiveRide() {
+    const response = await this.client.get(`/my-running-rides`);
+    return response.data;
+  }
+  async getMyFinishedRide({ page, limit }: { page: number; limit: number }) {
+    const response = await this.client.get(`/my-finished-rides?page=${page}&limit=${limit}`);
+    return response.data;
+  }
+
+  async verifyRideWithCustomer(bookingId: string, otpCode: string) {
+    const response = await this.client.get(
+      `/booking/${bookingId}/complete-ride-otp/${otpCode}`,
+    );
+    return response.data;
+  }
+
+  async regenerateBookingOtp(bookingId: string) {
+    try {
+      const response = await this.client.get(
+        `/booking/${bookingId}/regenerate-otp`,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  // Bidding endpoints
+
+  async getBidsForBooking(bookingId: string) {
+    try {
+      const response = await this.client.get(`/booking/${bookingId}/bids`);
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async placeBid(bookingId: string, params: any) {
+    try {
+      const response = await this.client.post(
+        `/booking/${bookingId}/bids`,
+        params,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
   }
 
   // Vehicle endpoints
@@ -334,19 +399,49 @@ class ApiService {
     return response.data;
   }
 
-  async getStripeConfig() {
-    const response = await this.client.get("/payments/stripe/config");
+  async createWalletOrder(data: any) {
+    const response = await this.client.post("/create-wallet-order", data);
+    return response.data;
+  }
+
+  async successWalletTopup(data: any) {
+    const response = await this.client.post("/success-wallet-topup", data);
     return response.data;
   }
 
   async getWalletBalance() {
-    const response = await this.client.get("/payments/wallet");
+    const response = await this.client.get("/wallet-balance");
+    return response.data;
+  }
+
+  async walletTopUp(data: any) {
+    const response = await this.client.post("/wallet-topup", data);
+    return response.data;
+  }
+
+  async updateWallet(data: any) {
+    const response = await this.client.post("/wallet-update", data);
+    return response.data;
+  }
+
+  async walletDetails(data: any) {
+    const response = await this.client.post("/wallet-detils", data);
+    return response.data;
+  }
+
+  async walletStatements(data: any) {
+    const response = await this.client.post("/wallet-statements", data);
+    return response.data;
+  }
+
+  async walletWithdraw(data: any) {
+    const response = await this.client.post("/wallet-withdraw", data);
     return response.data;
   }
 
   async placeBookingBid(
     bookingId: string,
-    body: { fareOfferCents: number; note?: string },
+    body: { amount: number; note?: string },
   ) {
     try {
       const response = await this.client.post(
@@ -373,7 +468,6 @@ class ApiService {
       throw err;
     }
   }
-
 
   // Upload endpoint
   /**

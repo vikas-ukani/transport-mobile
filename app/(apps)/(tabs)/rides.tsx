@@ -1,5 +1,6 @@
-import RidesScreen from "../../../components/screens/RidesScreen";
+import RideTabView from "../../../components/screens/RideTabView";
 
 export default function Rides() {
-  return <RidesScreen />;
+  return <RideTabView />;
+  // return <RidesScreen />;
 }

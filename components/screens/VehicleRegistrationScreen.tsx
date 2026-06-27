@@ -97,19 +97,6 @@ const VehicleRegistrationScreen = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (id) return;
-    let alive = true;
-    // apiService.getStripeConfig().then((c: any) => {
-    //   if (!alive || !c?.success) return;
-    //   setRegistrationFeeCents(c.vehicleRegistrationFeeCents ?? null);
-    //   setPaymentCurrency(c.currency || "inr");
-    // });
-    return () => {
-      alive = false;
-    };
-  }, [id]);
-
   const getVehicle = async (id: string) => {
     try {
       setLoading(true);

@@ -76,7 +76,7 @@
   },
   "wallet": {
     "addFunds": "રકમ ઉમેરો",
-    "stripeBalanceHint": "આ મેનુ ખોલ્યા પછી અથવા ટોપ-અપ પછી બેલેન્સ અપડેટ થાય છે."
+    "walletBalanceHint": "આ મેનુ ખોલ્યા પછી અથવા ટોપ-અપ પછી બેલેન્સ અપડેટ થાય છે."
   },
   "login": {
     "title": "પાછા આવવા પર સ્વાગત",
@@ -282,7 +282,6 @@
     "registrationPayFailed": "નોંધણી ચુકવણી પૂર્ણ થઈ નહીં.",
     "bookingHold": "બુકિંગ ચુકવણી",
     "registrationFee": "નોંધણી ફી",
-    "configurePublishableKey": "Stripe માટે EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY સેટ કરો.",
     "canceledUnpaidBooking": "ચુકવણી રદ — બુકિંગ બાકી તરીકે સાચવી.",
     "canceledUnpaidVehicle": "ચુકવણી રદ — પછીથી સેટિંગ્સમાંથી ફી ચૂકવો.",
     "walletTitle": "વૉલેટ",

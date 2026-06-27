@@ -9,10 +9,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#9333ea",
-        screen: "#f3e8ff",
-        primaryLight: "#a855f7",
+        primary: "#045498",
+        // primary: "#9333ea",
+        screen: "#e2f1f9",
+        secondScreen: "#f1f6f9",
+        primaryLight: "#045498",
         danger: "#dc2626",
+        yellow: "#d09418",
       },
     },
   },

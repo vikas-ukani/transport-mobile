@@ -17,13 +17,6 @@ export default function AppTabLayout() {
   // On web, the tabs may not show unless the layout file exports unstable_settings with anchor
 
   return (
-    // <NativeTabs>
-    //   <NativeTabs.Trigger name="page">
-    //     <NativeTabs.Trigger.TabBar backgroundColor="black" />
-    //     <Label>Page</Label>
-    //     <IconSymbol size={28} name="house.fill" color="#9333ea" />
-    //   </NativeTabs.Trigger>
-    // </NativeTabs>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -37,7 +30,7 @@ export default function AppTabLayout() {
             <IconSymbol
               size={28}
               name="house.fill"
-              color={focused ? "#9333ea" : color}
+              className={focused ? "!text-primary":"!text-gray-500"}
             />
           ),
         }}
@@ -55,7 +48,7 @@ export default function AppTabLayout() {
             <FontAwesome
               name="trophy"
               size={24}
-              color={focused ? "#9333ea" : color}
+              className={focused ? "!text-primary":"!text-gray-500"}
             />
           ),
         }}
@@ -70,7 +63,7 @@ export default function AppTabLayout() {
             <FontAwesome
               name="truck"
               size={24}
-              color={focused ? "#9333ea" : color}
+              className={focused ? "!text-primary":"!text-gray-500"}
             />
           ),
         }}
@@ -87,7 +80,7 @@ export default function AppTabLayout() {
             <FontAwesome
               name="bookmark"
               size={24}
-              color={focused ? "#9333ea" : color}
+              className={focused ? "!text-primary":"!text-gray-500"}
             />
           ),
         }}
@@ -101,7 +94,7 @@ export default function AppTabLayout() {
             <FontAwesome
               name="gear"
               size={24}
-              color={focused ? "#9333ea" : color}
+              className={focused ? "!text-primary":"!text-gray-500"}
             />
           ),
         }}

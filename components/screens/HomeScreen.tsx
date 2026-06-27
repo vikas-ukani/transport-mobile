@@ -148,7 +148,7 @@ const HomeScreen = () => {
       >
         {/* User Guide Section */}
         {videos.length > 0 && (
-          <View className="px-2 py-6 my-4 bg-white shadow-sm">
+          <View className="px-2 py-6 my-4 shadow-sm bg-screen">
             <View className="flex-row justify-between items-center pl-4 mb-5">
               <Text className="text-2xl font-bold text-gray-900">
                 {t("home.userGuide")}

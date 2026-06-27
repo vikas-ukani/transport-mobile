@@ -1,82 +1,158 @@
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import {
-    DrawerContentScrollView,
-    useDrawerStatus,
-    type DrawerContentComponentProps,
+  DrawerContentScrollView,
+  useDrawerStatus,
+  type DrawerContentComponentProps,
 } from "@react-navigation/drawer";
 import { router } from "expo-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 
-import { IconSymbol } from "../ui/icon-symbol";
+import { toast } from "@backpackapp-io/react-native-toast";
+import {
+  CFDropCheckoutPayment,
+  CFPaymentComponentBuilder,
+  CFPaymentModes,
+  CFThemeBuilder,
+} from "cashfree-pg-api-contract";
+import {
+  CFErrorResponse,
+  CFPaymentGatewayService,
+} from "react-native-cashfree-pg-sdk";
+import { apiService } from "../../services/api.service";
+import { createSession } from "../../services/cashfree";
 import ConfirmPopup from "./ConfirmPopup";
 
 export default function AppDrawerContent({
   navigation,
 }: DrawerContentComponentProps) {
   const { t } = useTranslation();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, updateUser, refreshWalletBalance } = useAuth();
   const drawerStatus = useDrawerStatus();
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
-  const [walletCurrency, setWalletCurrency] = useState("inr");
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const [addFundsAmount, setAddFundsAmount] = useState("");
-  const [addFundsMethod, setAddFundsMethod] = useState<
-    "UPI" | "GOOGLE_PAY" | "CARD" | null
-  >(null);
   const [addLoading, setAddLoading] = useState(false);
+
+  useEffect(() => {
+    try {
+      CFPaymentGatewayService.setCallback({
+        async onVerify(orderID: string) {
+          console.log("success ", orderID);
+          // mstStore.cartStore.emptyCart(mstStore.otpStore.userId);
+          const data = await apiService.successWalletTopup({
+            cashFreeOrderId: orderID,
+          });
+          await updateUser({
+            walletAmount: data.walletAmount,
+          });
+          setAddFundsAmount("");
+          setShowAddFundsModal(false);
+          // navigation.navigate(NAVIGATION.PaymentSuccess);
+          toast.dismiss();
+          toast.success("Payment successful.");
+        },
+        onError(error: CFErrorResponse, orderID: string): void {
+          toast.remove();
+          toast.error(error.getMessage());
+          setAddFundsAmount("");
+          setShowAddFundsModal(false);
+          console.log("failed walelt TOPIUP: ", orderID, error.getMessage());
+          // navigation.navigate(NAVIGATION.PaymentFailed);
+        },
+      });
+    } catch (error: any) {
+      console.error(
+        "Error in setCallback",
+        error?.message || error,
+        error?.stack || "",
+      );
+    } finally {
+      refreshWalletBalance();
+    }
+    return () => CFPaymentGatewayService.removeCallback();
+  }, []);
 
   const closeThen = (path: string) => {
     navigation.closeDrawer();
     requestAnimationFrame(() => router.push(path as any));
   };
 
-  const walletLabel = "";
-
-  const handleAddFunds = async () => {
-    const rupees = parseFloat(String(addFundsAmount).replace(/,/g, ""));
-    if (!Number.isFinite(rupees) || rupees < 1) {
-      Alert.alert(
-        t("wallet.invalidAmountTitle"),
-        t("wallet.invalidAmountBody"),
-      );
-      return;
-    }
-
-    if (!process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-      Alert.alert(
-        t("payment.configurePublishableKey"),
-        t("wallet.stripeKeyMissingBody"),
-      );
-      return;
-    }
-    const amountCents = Math.round(rupees * 100);
-    setAddLoading(true);
-    try {
-    } catch (error: any) {
-      Alert.alert(t("wallet.topUpFailedTitle"), error.message || "");
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
   const handleLogout = async () => {
     await logout();
     closeThen("/(apps)");
+  };
+
+  const handleAddFunds = async () => {
+    try {
+      setAddLoading(true);
+      const makeOrderId = `order_${Date.now()}_${Math.floor(Math.random() * 1e8)}`;
+      const order = await apiService.createWalletOrder({
+        order_amount: parseFloat(addFundsAmount),
+        order_id: makeOrderId,
+        order_currency: "INR",
+        customer_details: {
+          customer_id: user?.id,
+          customer_name: user?.name,
+          customer_email: user?.email,
+          customer_phone: user?.mobile,
+        },
+        order_meta: {
+          notify_url: `https://test.cashfree.com/pgappsdemos/return.php?order_id=${makeOrderId}`,
+        },
+        order_note: "Top up wallet balance",
+      });
+
+      const sessionId = order.payment_session_id;
+      const orderId = order.order_id;
+
+      const session = createSession(sessionId, orderId);
+      const paymentComponent = new CFPaymentComponentBuilder()
+        .add(CFPaymentModes.CARD)
+        .add(CFPaymentModes.UPI)
+        .add(CFPaymentModes.UPI)
+        .add(CFPaymentModes.NB)
+        .add(CFPaymentModes.WALLET)
+        .add(CFPaymentModes.PAY_LATER)
+        .build();
+
+      // // 3. Optional: Customize Theme
+      const theme = new CFThemeBuilder()
+        .setNavigationBarBackgroundColor("#a855f7")
+        .setNavigationBarTextColor("#FFFFFF")
+        .setButtonBackgroundColor("#FFC107")
+        .setButtonTextColor("#FFFFFF")
+        .setPrimaryTextColor("#212121")
+        .setSecondaryTextColor("#757575")
+        .build();
+
+      // // Use this wrapper class to initiate the payment
+      const dropCheckoutPayment = new CFDropCheckoutPayment(
+        session,
+        paymentComponent,
+        theme,
+      );
+      CFPaymentGatewayService.doPayment(dropCheckoutPayment);
+    } catch (e: any) {
+      console.error(`Error in handleAddFunds`, e?.message || e, e?.stack || "");
+      // Optionally, show an error toast to the user (requires a toast library):
+      // toast.error(`Failed to add funds: ${e?.message || e}`);
+    } finally {
+      setAddLoading(false);
+    }
   };
 
   return (
@@ -102,8 +178,8 @@ export default function AppDrawerContent({
                   className="w-16 h-16 rounded-full border-2 border-primary"
                 />
               ) : (
-                <View className="justify-center items-center w-16 h-16 bg-violet-100 rounded-full border-2 border-violet-200">
-                  <Ionicons name="person" size={32} color="#9333ea" />
+                <View className="justify-center items-center w-16 h-16 rounded-full border-2 !border-primary bg-screen">
+                  <Ionicons name="person" size={32} className="!text-primary" />
                 </View>
               )}
               <View className="flex-1">
@@ -129,14 +205,29 @@ export default function AppDrawerContent({
             </View>
 
             <View className="pt-4 mt-4 border-t border-gray-100">
-              <View className="mb-1">
-                {/* <Text className="text-xs font-semibold text-gray-500 tracking-tight mb-0.5">
-                  {t("common.walletBalance")}
-                </Text> */}
-                <Text className="w-full text-3xl font-extrabold text-center text-primary">
-                  {walletLabel ?? t("common.walletUnavailable")}
+              <View className="flex-row justify-center items-center mb-1 w-full">
+                <Text className="font-bold text-3xl mr-1.5 text-primary">
+                  ₹
                 </Text>
+                <Text className="w-auto text-3xl font-extrabold text-center text-primary">
+                  {user?.walletAmount ?? t("common.walletUnavailable")}
+                </Text>
+                <TouchableOpacity
+                  onPress={refreshWalletBalance}
+                  style={{ marginLeft: 8, padding: 2 }}
+                  accessibilityRole="button"
+                  className="flex justify-end"
+                  accessibilityLabel={t("wallet.refreshBalance")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name="refresh-circle"
+                    size={28}
+                    className="!text-primary"
+                  />
+                </TouchableOpacity>
               </View>
+
               <TouchableOpacity
                 className="justify-center items-center px-4 py-3 mt-3 w-full rounded-lg shadow-sm bg-primary"
                 onPress={() => setShowAddFundsModal(true)}
@@ -155,40 +246,64 @@ export default function AppDrawerContent({
         </Text>
         <View className="overflow-hidden mx-2 bg-white rounded-xl border border-gray-200">
           <DrawerRow
-            icon={<IconSymbol name="house.fill" size={22} color="#9333ea" />}
+            icon={
+              <FontAwesome name="home" size={22} className="!text-primary" />
+            }
             label={t("common.home")}
             onPress={() => closeThen("/(apps)/(tabs)")}
           />
           {user?.type === "driver" ? (
             <DrawerRow
-              icon={<FontAwesome name="trophy" size={20} color="#9333ea" />}
+              icon={
+                <FontAwesome
+                  name="trophy"
+                  size={20}
+                  className="!text-primary"
+                />
+              }
               label={t("common.rides")}
               onPress={() => closeThen("/(apps)/(tabs)/rides")}
             />
           ) : null}
           {user?.type === "driver" ? (
             <DrawerRow
-              icon={<FontAwesome name="truck" size={20} color="#9333ea" />}
+              icon={
+                <FontAwesome name="truck" size={20} className="!text-primary" />
+              }
               label={t("common.myVehicles")}
               onPress={() => closeThen("/(apps)/(tabs)/vehicles")}
             />
           ) : null}
           {user?.type === "customer" ? (
             <DrawerRow
-              icon={<FontAwesome name="bookmark" size={20} color="#9333ea" />}
+              icon={
+                <FontAwesome
+                  name="bookmark"
+                  size={20}
+                  className="!text-primary"
+                />
+              }
               label={t("common.booking")}
               onPress={() => closeThen("/(apps)/(tabs)/bookings")}
             />
           ) : null}
           {user?.type === "customer" ? (
             <DrawerRow
-              icon={<Ionicons name="car-outline" size={22} color="#9333ea" />}
+              icon={
+                <Ionicons
+                  name="car-outline"
+                  size={22}
+                  className="!text-primary"
+                />
+              }
               label={t("common.bookVehicle")}
               onPress={() => closeThen("/(apps)/book-vehicle")}
             />
           ) : null}
           <DrawerRow
-            icon={<FontAwesome name="gear" size={20} color="#9333ea" />}
+            icon={
+              <FontAwesome name="gear" size={20} className="!text-primary" />
+            }
             label={t("common.profile")}
             onPress={() => closeThen("/(apps)/(tabs)/profile")}
             isLast
@@ -201,7 +316,11 @@ export default function AppDrawerContent({
         <View className="overflow-hidden mx-3 bg-white rounded-xl border border-gray-200">
           <DrawerRow
             icon={
-              <Ionicons name="settings-outline" size={22} color="#9333ea" />
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                className="!text-primary"
+              />
             }
             label={t("common.settings")}
             onPress={() => closeThen("/(apps)/settings")}
@@ -211,7 +330,7 @@ export default function AppDrawerContent({
               <Ionicons
                 name="shield-checkmark-outline"
                 size={22}
-                color="#9333ea"
+                className="!text-primary"
               />
             }
             label={t("common.security")}
@@ -222,7 +341,7 @@ export default function AppDrawerContent({
               <Ionicons
                 name="notifications-outline"
                 size={22}
-                color="#9333ea"
+                className="!text-primary"
               />
             }
             label={t("common.notifications")}
@@ -320,14 +439,45 @@ export default function AppDrawerContent({
                   onChangeText={setAddFundsAmount}
                   editable={!addLoading}
                   placeholder="Enter amount"
+                  className="border-primary"
                   style={{
                     flex: 1,
                     borderBottomWidth: 1,
-                    borderColor: "#9333ea",
+
                     paddingVertical: 4,
                     fontSize: 16,
                   }}
                 />
+              </View>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  marginBottom: 12,
+                }}
+              >
+                {[200, 500, 1000, 2000].map((amount) => (
+                  <TouchableOpacity
+                    key={amount}
+                    onPress={() => setAddFundsAmount(String(amount))}
+                    disabled={addLoading}
+                    className={`mx-1.5 ${addFundsAmount === String(amount) ? "bg-primary border-primary border-[1.5px]" : "bg-gray-100 border border-gray-300"} py-2 px-4 rounded-full`}
+                    style={{
+                      opacity: addLoading ? 0.7 : 1,
+                    }}
+                  >
+                    <Text
+                      className={`${
+                        addFundsAmount === String(amount)
+                          ? "text-white"
+                          : "text-primary"
+                      } font-bold text-lg`}
+                    >
+                      ₹{amount}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               <Text
@@ -337,7 +487,7 @@ export default function AppDrawerContent({
                   marginBottom: 10,
                 }}
               >
-                {t("wallet.stripeSheetHint")}
+                {t("wallet.PaymentHint")}
               </Text>
 
               <View style={{ flexDirection: "row", marginTop: 10 }}>
@@ -346,7 +496,6 @@ export default function AppDrawerContent({
                     if (!addLoading) {
                       setShowAddFundsModal(false);
                       setAddFundsAmount("");
-                      setAddFundsMethod(null);
                     }
                   }}
                   style={{
@@ -366,9 +515,9 @@ export default function AppDrawerContent({
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleAddFunds}
+                  className="!bg-primary"
                   style={{
                     flex: 1,
-                    backgroundColor: "#9333ea",
                     borderRadius: 7,
                     paddingVertical: 11,
                     alignItems: "center",
