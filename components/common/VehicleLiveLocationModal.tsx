@@ -6,11 +6,13 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, {
-    Marker,
-    PROVIDER_GOOGLE,
-    Region,
-    UrlTile,
+  Marker,
+  PROVIDER_GOOGLE,
+  Region,
+  UrlTile,
 } from "react-native-maps";
+
+const API_KEY = "";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -89,7 +91,7 @@ const VehicleLiveLocationModal = ({
           >
             <UrlTile
               tileSize={512}
-              urlTemplate="https://api.mapbox.com/styles/v1/fugafuga/hogehoge/tiles/256/{z}/{x}/{y}?access_token=AIzaSyBMGdSzCYEbfUoWHUAsR32czcZJOHodZB8"
+              urlTemplate="https://api.mapbox.com/styles/v1/fugafuga/hogehoge/tiles/256/{z}/{x}/{y}?access_token=${API_KEY}"
               maximumZ={19}
             />
             <Marker
