@@ -1,158 +1,28 @@
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import {
-  DrawerContentScrollView,
-  useDrawerStatus,
-  type DrawerContentComponentProps,
+    DrawerContentScrollView
 } from "@react-navigation/drawer";
 import { router } from "expo-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 
-import { toast } from "@backpackapp-io/react-native-toast";
-import {
-  CFDropCheckoutPayment,
-  CFPaymentComponentBuilder,
-  CFPaymentModes,
-  CFThemeBuilder,
-} from "cashfree-pg-api-contract";
-import {
-  CFErrorResponse,
-  CFPaymentGatewayService,
-} from "react-native-cashfree-pg-sdk";
-import { apiService } from "../../services/api.service";
-import { createSession } from "../../services/cashfree";
 import ConfirmPopup from "./ConfirmPopup";
 
-export default function AppDrawerContent({
-  navigation,
-}: DrawerContentComponentProps) {
+export default function AppDrawerContent() {
   const { t } = useTranslation();
-  const { user, logout, updateUser, refreshWalletBalance } = useAuth();
-  const drawerStatus = useDrawerStatus();
+  const { user, logout } = useAuth();
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
-  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
-  const [addFundsAmount, setAddFundsAmount] = useState("");
-  const [addLoading, setAddLoading] = useState(false);
-
-  useEffect(() => {
-    try {
-      CFPaymentGatewayService.setCallback({
-        async onVerify(orderID: string) {
-          console.log("success ", orderID);
-          // mstStore.cartStore.emptyCart(mstStore.otpStore.userId);
-          const data = await apiService.successWalletTopup({
-            cashFreeOrderId: orderID,
-          });
-          await updateUser({
-            walletAmount: data.walletAmount,
-          });
-          setAddFundsAmount("");
-          setShowAddFundsModal(false);
-          // navigation.navigate(NAVIGATION.PaymentSuccess);
-          toast.dismiss();
-          toast.success("Payment successful.");
-        },
-        onError(error: CFErrorResponse, orderID: string): void {
-          toast.remove();
-          toast.error(error.getMessage());
-          setAddFundsAmount("");
-          setShowAddFundsModal(false);
-          console.log("failed walelt TOPIUP: ", orderID, error.getMessage());
-          // navigation.navigate(NAVIGATION.PaymentFailed);
-        },
-      });
-    } catch (error: any) {
-      console.error(
-        "Error in setCallback",
-        error?.message || error,
-        error?.stack || "",
-      );
-    } finally {
-      refreshWalletBalance();
-    }
-    return () => CFPaymentGatewayService.removeCallback();
-  }, []);
 
   const closeThen = (path: string) => {
-    navigation.closeDrawer();
+    // For expo-router's Drawer, just navigate; closing handled internally
     requestAnimationFrame(() => router.push(path as any));
   };
 
   const handleLogout = async () => {
     await logout();
     closeThen("/(apps)");
-  };
-
-  const handleAddFunds = async () => {
-    try {
-      setAddLoading(true);
-      const makeOrderId = `order_${Date.now()}_${Math.floor(Math.random() * 1e8)}`;
-      const order = await apiService.createWalletOrder({
-        order_amount: parseFloat(addFundsAmount),
-        order_id: makeOrderId,
-        order_currency: "INR",
-        customer_details: {
-          customer_id: user?.id,
-          customer_name: user?.name,
-          customer_email: user?.email,
-          customer_phone: user?.mobile,
-        },
-        order_meta: {
-          notify_url: `https://test.cashfree.com/pgappsdemos/return.php?order_id=${makeOrderId}`,
-        },
-        order_note: "Top up wallet balance",
-      });
-
-      const sessionId = order.payment_session_id;
-      const orderId = order.order_id;
-
-      const session = createSession(sessionId, orderId);
-      const paymentComponent = new CFPaymentComponentBuilder()
-        .add(CFPaymentModes.CARD)
-        .add(CFPaymentModes.UPI)
-        .add(CFPaymentModes.UPI)
-        .add(CFPaymentModes.NB)
-        .add(CFPaymentModes.WALLET)
-        .add(CFPaymentModes.PAY_LATER)
-        .build();
-
-      // // 3. Optional: Customize Theme
-      const theme = new CFThemeBuilder()
-        .setNavigationBarBackgroundColor("#a855f7")
-        .setNavigationBarTextColor("#FFFFFF")
-        .setButtonBackgroundColor("#FFC107")
-        .setButtonTextColor("#FFFFFF")
-        .setPrimaryTextColor("#212121")
-        .setSecondaryTextColor("#757575")
-        .build();
-
-      // // Use this wrapper class to initiate the payment
-      const dropCheckoutPayment = new CFDropCheckoutPayment(
-        session,
-        paymentComponent,
-        theme,
-      );
-      CFPaymentGatewayService.doPayment(dropCheckoutPayment);
-    } catch (e: any) {
-      console.error(`Error in handleAddFunds`, e?.message || e, e?.stack || "");
-      // Optionally, show an error toast to the user (requires a toast library):
-      // toast.error(`Failed to add funds: ${e?.message || e}`);
-    } finally {
-      setAddLoading(false);
-    }
   };
 
   return (
@@ -202,41 +72,6 @@ export default function AppDrawerContent({
                   </View>
                 ) : null}
               </View>
-            </View>
-
-            <View className="pt-4 mt-4 border-t border-gray-100">
-              <View className="flex-row justify-center items-center mb-1 w-full">
-                <Text className="font-bold text-3xl mr-1.5 text-primary">
-                  ₹
-                </Text>
-                <Text className="w-auto text-3xl font-extrabold text-center text-primary">
-                  {user?.walletAmount ?? t("common.walletUnavailable")}
-                </Text>
-                <TouchableOpacity
-                  onPress={refreshWalletBalance}
-                  style={{ marginLeft: 8, padding: 2 }}
-                  accessibilityRole="button"
-                  className="flex justify-end"
-                  accessibilityLabel={t("wallet.refreshBalance")}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons
-                    name="refresh-circle"
-                    size={28}
-                    className="!text-primary"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                className="justify-center items-center px-4 py-3 mt-3 w-full rounded-lg shadow-sm bg-primary"
-                onPress={() => setShowAddFundsModal(true)}
-                activeOpacity={0.85}
-              >
-                <Text className="font-semibold text-white text-md">
-                  {t("wallet.addFunds")}
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -361,186 +196,6 @@ export default function AppDrawerContent({
           </Text>
         </TouchableOpacity>
       </DrawerContentScrollView>
-
-      {/* Add Funds Modal */}
-      <Modal
-        visible={showAddFundsModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowAddFundsModal(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.35)",
-            justifyContent: "center",
-            alignItems: "center",
-            paddingVertical: 24,
-          }}
-        >
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
-            showsVerticalScrollIndicator={false}
-          >
-            <View
-              style={{
-                minWidth: 320,
-                maxWidth: 380,
-                backgroundColor: "white",
-                borderRadius: 14,
-                padding: 22,
-                alignItems: "stretch",
-                elevation: 6,
-                shadowColor: "#000",
-                shadowOpacity: 0.09,
-                shadowRadius: 10,
-              }}
-            >
-              <Text
-                style={{
-                  fontWeight: "700",
-                  fontSize: 18,
-                  marginBottom: 8,
-                  textAlign: "center",
-                }}
-              >
-                {t("wallet.addFunds") || "Add Funds"}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  marginBottom: 10,
-                  color: "#666",
-                  textAlign: "center",
-                }}
-              >
-                {t("wallet.modalSubtitle")}
-              </Text>
-              <Text style={{ fontSize: 14, marginBottom: 6 }}>
-                {t("wallet.amountInr")}
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <Text
-                  style={{ fontWeight: "bold", fontSize: 18, marginRight: 5 }}
-                >
-                  ₹
-                </Text>
-                <TextInput
-                  keyboardType="numeric"
-                  value={addFundsAmount}
-                  onChangeText={setAddFundsAmount}
-                  editable={!addLoading}
-                  placeholder="Enter amount"
-                  className="border-primary"
-                  style={{
-                    flex: 1,
-                    borderBottomWidth: 1,
-
-                    paddingVertical: 4,
-                    fontSize: 16,
-                  }}
-                />
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  marginBottom: 12,
-                }}
-              >
-                {[200, 500, 1000, 2000].map((amount) => (
-                  <TouchableOpacity
-                    key={amount}
-                    onPress={() => setAddFundsAmount(String(amount))}
-                    disabled={addLoading}
-                    className={`mx-1.5 ${addFundsAmount === String(amount) ? "bg-primary border-primary border-[1.5px]" : "bg-gray-100 border border-gray-300"} py-2 px-4 rounded-full`}
-                    style={{
-                      opacity: addLoading ? 0.7 : 1,
-                    }}
-                  >
-                    <Text
-                      className={`${
-                        addFundsAmount === String(amount)
-                          ? "text-white"
-                          : "text-primary"
-                      } font-bold text-lg`}
-                    >
-                      ₹{amount}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: "#888",
-                  marginBottom: 10,
-                }}
-              >
-                {t("wallet.PaymentHint")}
-              </Text>
-
-              <View style={{ flexDirection: "row", marginTop: 10 }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (!addLoading) {
-                      setShowAddFundsModal(false);
-                      setAddFundsAmount("");
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "#F3F4F6",
-                    borderRadius: 7,
-                    paddingVertical: 11,
-                    alignItems: "center",
-                    marginRight: 7,
-                    opacity: addLoading ? 0.7 : 1,
-                  }}
-                  disabled={addLoading}
-                >
-                  <Text style={{ fontWeight: "bold", color: "#6B7280" }}>
-                    {t("common.cancel")}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleAddFunds}
-                  className="!bg-primary"
-                  style={{
-                    flex: 1,
-                    borderRadius: 7,
-                    paddingVertical: 11,
-                    alignItems: "center",
-                    marginLeft: 7,
-                    opacity: addLoading ? 0.7 : 1,
-                    flexDirection: "row",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
-                  disabled={addLoading}
-                >
-                  {addLoading ? <ActivityIndicator color="#fff" /> : null}
-                  <Text style={{ fontWeight: "bold", color: "white" }}>
-                    {addLoading
-                      ? t("wallet.addingFunds")
-                      : t("wallet.continuePay")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
     </>
   );
 }

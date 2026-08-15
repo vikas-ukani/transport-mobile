@@ -59,6 +59,7 @@ export default function RootLayout() {
             <RootNavigator />
             <Toasts
               globalAnimationType="fade"
+              defaultDuration={5000}
               defaultStyle={{
                 view: {
                   backgroundColor: "rgba(0, 0, 0, 0.8)",

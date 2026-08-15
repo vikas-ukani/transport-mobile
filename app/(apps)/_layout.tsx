@@ -12,7 +12,7 @@ export default function AppsLayout() {
     <>
       {Platform.OS !== "web" && <UserGPSUpdate />}
       <Drawer
-        drawerContent={(props) => <AppDrawerContent {...props} />}
+        drawerContent={(props: any) => <AppDrawerContent {...props} />}
         screenOptions={{
           headerShown: false,
           drawerType: "slide",

@@ -4,11 +4,11 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    Text,
-    TouchableOpacity,
-    View,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 import { useAuth } from "../../context/AuthContext";
@@ -18,7 +18,6 @@ import { Booking } from "./RidesScreen";
 
 const MyFinishedRidesScreen = () => {
   const { t } = useTranslation();
-  const { refreshWalletBalance } = useAuth();
 
   // No more local rides state. React Query will manage fetching and cache.
   const [page, setPage] = useState(1);
@@ -246,7 +245,7 @@ const MyFinishedRidesScreen = () => {
                       <Ionicons name="cube-outline" size={16} color="#4B5563" />
                       <Text className="ml-2 text-sm text-gray-600">
                         {booking.loadCapacity
-                          ? `${booking.loadCapacity} kg`
+                          ? `${booking.loadCapacity} ton`
                           : t("vehicles.unknownLoadCapacity")}
                       </Text>
                     </View>
@@ -288,8 +287,8 @@ const MyFinishedRidesScreen = () => {
                       />
                       <Text className="text-sm font-semibold text-green-700">
                         {"finalAmount" in booking &&
-                        (booking?.paymentAmountCents || booking?.finalAmount)
-                          ? `${booking?.paymentAmountCents || booking?.finalAmount} ${t("wallet.currency", { defaultValue: "₹" })}`
+                        ( booking?.finalAmount)
+                          ? `${booking?.finalAmount} ${t("wallet.currency", { defaultValue: "₹" })}`
                           : t("wallet.noEarning", {
                               defaultValue: "No earning",
                             })}
@@ -308,7 +307,7 @@ const MyFinishedRidesScreen = () => {
                         className={`px-2 py-[2px] rounded-full ${
                           booking.status?.toLowerCase() === "completed"
                             ? "bg-green-100"
-                            : booking.status?.toLowerCase() === "cancelled"
+                            : booking.status?.toLowerCase() === "CANCELED"
                               ? "bg-red-100"
                               : "bg-orange-100"
                         }`}
@@ -317,7 +316,7 @@ const MyFinishedRidesScreen = () => {
                           className={`text-xs font-bold ${
                             booking.status?.toLowerCase() === "completed"
                               ? "text-green-700"
-                              : booking.status?.toLowerCase() === "cancelled"
+                              : booking.status?.toLowerCase() === "CANCELED"
                                 ? "text-red-700"
                                 : "text-orange-700"
                           }`}

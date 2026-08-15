@@ -1,128 +1,142 @@
+import { toast } from "@backpackapp-io/react-native-toast";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { RefreshControl } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { toast } from "@backpackapp-io/react-native-toast";
-import { useTranslation } from "react-i18next";
 import apiService from "../../services/api.service";
 import ConfirmPopup from "../common/ConfirmPopup";
+
+// React Query key
+const BOOKINGS_QUERY_KEY = ["my-bookings"];
 
 interface Booking {
   id: string;
   bookingDate: string;
   status: string;
   driverNotes?: string;
-
-  // Customer details
   customerId: string;
-
-  driver?: any; // Or a more detailed interface for Driver if available
+  driver?: any;
   driverId?: number;
-
-  // Shipment details
   fromAddress: string;
   fromLatitude?: number;
   fromLongitude?: number;
   toAddress: string;
   toLatitude?: number;
   toLongitude?: number;
-
   truckType: string;
   bodyType: string;
   truckLength?: string;
   truckHeight?: string;
   loadCapacity?: string;
-
-  // Pricing & Payment
   estimatedKm?: string;
   paymentStatus: string;
-
-  shipment?: any[]; // Or a more detailed interface if you have it
-
+  shipment?: any[];
   createdAt: string;
   updatedAt: string;
-
-  driverBookingRequests?: any[]; // Or a more detailed interface if you have it
+  driverBookingRequests?: any[];
 }
+
+const PAGE_SIZE = 10;
+
+const fetchBookings = async ({ pageParam = 1 }: { pageParam?: number }) => {
+  const data = await apiService.getMyBookings({
+    page: pageParam,
+    limit: PAGE_SIZE,
+  });
+  if (!data.success) throw new Error("Failed to fetch bookings");
+  return {
+    bookings: data.bookings || [],
+    nextPage:
+      data.bookings && data.bookings.length >= PAGE_SIZE
+        ? pageParam + 1
+        : undefined,
+  };
+};
 
 const MyBookingScreen = () => {
   const { t } = useTranslation();
-
-  const [bookings, setBookings] = useState<Booking[] | []>([]);
-  const [loading, setLoading] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(
     null,
   );
+  const refreshRef = useRef(false);
 
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Infinite Query for bookings
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isRefetching,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: BOOKINGS_QUERY_KEY,
+    queryFn: fetchBookings,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: any) => lastPage.nextPage,
+    staleTime: 1000 * 60 * 2, // 2m cache    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    loadBookings();
-  }, []);
+  // Refetch posts when coming back to this screen
+  useFocusEffect(
+    useCallback(() => {
+      // When screen is focused, refetch posts to ensure latest
+      refetch();
+    }, [refetch]),
+  );
 
+  // Pull to refresh
   const onRefresh = useCallback(() => {
-    loadBookings(1, false);
-  }, []);
+    refreshRef.current = true;
+    refetch();
+  }, [refetch]);
 
-  // Use this to fetch bookings with pagination
-  const loadBookings = async (pageNum = 1, append = false) => {
-    try {
-      if (pageNum === 1) setLoading(true);
-      setRefreshing(pageNum === 1 && append === false); // Can be used for PullToRefresh
+  // Flatten paginated data for render
+  const bookings: Booking[] =
+    data?.pages?.flatMap((page: any) => page.bookings) ?? [];
 
-      const data = await apiService.getMyBookings({ page: pageNum, limit: 10 });
-      if (data.success) {
-        const newBookings = data.bookings || [];
-        setHasMore(newBookings.length >= 10);
-
-        setBookings((prev) =>
-          pageNum === 1 || !append ? newBookings : [...prev, ...newBookings],
-        );
-        setPage(pageNum);
-      }
-    } catch (error) {
-      console.error("Failed to fetch bookings:", error);
-      return [];
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Adds infinite scroll/pagination logic for loading more bookings
+  // Infinite scroll - load more
   const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      loadBookings(page + 1, true);
+    if (hasNextPage && !isFetchingNextPage && !isFetching) {
+      fetchNextPage();
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      setLoading(true);
-      const data = await apiService.deleteBookingById(id);
-      if (data.success) {
-        toast.success(t("booking.bookingDeleted"));
-        // Refresh the vehicle list after deletion
-        loadBookings();
-      }
+      await apiService.deleteBookingById(id);
+      toast.success(t("booking.bookingDeleted"));
+      // Refetch bookings after deletion
+      refetch();
     } catch (error) {
       console.error("Failed to delete booking:", error);
     } finally {
-      setLoading(false);
       setShowConfirmDelete(null);
+    }
+  };
+
+  // Trigger pagination on scroll bottom
+  const handleScroll = (e: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    const paddingToBottom = 60;
+    if (
+      layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom
+    ) {
+      handleLoadMore();
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-screen">
       <ConfirmPopup
-        loading={loading}
+        loading={isLoading || isFetching}
         show={showConfirmDelete !== null}
         onCancel={() => setShowConfirmDelete(null)}
         onConfirm={() => handleDelete(showConfirmDelete!)}
@@ -134,7 +148,6 @@ const MyBookingScreen = () => {
         <Text className="text-xl font-bold text-gray-900">
           {t("booking.myBookings")}
         </Text>
-
         <TouchableOpacity
           className=""
           activeOpacity={0.8}
@@ -160,8 +173,14 @@ const MyBookingScreen = () => {
         className="flex-1 px-5 py-5"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={isLoading || isFetching || isRefetching}
+            onRefresh={onRefresh}
+            colors={["#EF4444"]}
+          />
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
       >
         {bookings.length > 0 ? (
           bookings.map((booking: Booking) => (
@@ -267,7 +286,7 @@ const MyBookingScreen = () => {
                       <Ionicons name="cube-outline" size={18} color="#6B7280" />
                       <Text className="ml-2 text-sm font-medium text-gray-600">
                         {booking.loadCapacity
-                          ? `${booking.loadCapacity} kg`
+                          ? `${booking.loadCapacity} ton`
                           : t("vehicles.unknownLoadCapacity")}
                       </Text>
                     </View>
@@ -336,6 +355,14 @@ const MyBookingScreen = () => {
             <Ionicons name="document-text-outline" size={64} color="#D1D5DB" />
             <Text className="mt-4 text-base font-medium text-gray-500">
               {t("booking.noBookings")}
+            </Text>
+          </View>
+        )}
+        {/* Loader at the bottom when loading more */}
+        {(isFetchingNextPage || (hasNextPage && bookings.length)) && (
+          <View className="items-center py-4">
+            <Text className="text-gray-500">
+              {t("common.loading") || "Loading..."}
             </Text>
           </View>
         )}

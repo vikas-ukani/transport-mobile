@@ -1,14 +1,13 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
-import { useAuth } from "../../context/AuthContext";
-
-import { useTranslation } from "react-i18next";
 import apiService, { getBaseUrl } from "../../services/api.service";
 import ConfirmPopup from "../common/ConfirmPopup";
 
@@ -23,65 +22,45 @@ const schema = yup.object().shape({
   truckHeight: yup.string().required("Truck height is required"),
 });
 
-interface Vehicle {
-  id: string;
-  rcNumber: string;
-  truckType: string;
-  bodyType: string;
-  truckLength: string;
-  loadCapacity: string;
-  truckHeight: string;
-  rcPhotos: string;
-  rating: number;
-  travelled: string;
-  status: "verified" | "pending";
-  createdAt: string;
-}
-
 const MyVehiclesScreen = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(null);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(
+    null,
+  );
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchVehicles();
-  }, []);
+  // React Query usage to fetch vehicles
+  const {
+    data,
+    isLoading: loading,
+    refetch,
+    isRefetching,
+  } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: async () => {
+      const response = await apiService.getVehicles();
+      if (!response.success) throw new Error("Failed to fetch vehicles");
+      return response.vehicles;
+    },
+  });
 
-  const onRefresh = useCallback(() => {
-    fetchVehicles();
-  }, []);
-
-  // Function to fetch all vehicles using the getVehicles API service
-  const fetchVehicles = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.getVehicles();
-      if (data.success) {
-        setVehicles(data.vehicles); // Assuming the API returns a 'vehicles' array
-      }
-    } catch (error) {
-      console.error("Failed to fetch vehicles:", error);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Refetch vehicles whenever the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   const handleDelete = async (vehicleId: string) => {
     try {
-      setLoading(true);
-      const data = await apiService.deleteVehicle(vehicleId);
-      if (data.success) {
+      const response = await apiService.deleteVehicle(vehicleId);
+      if (response.success) {
         toast.success(t("vehicles.vehicleDeleted"));
-        // Refresh the vehicle list after deletion
-        fetchVehicles();
+        queryClient.invalidateQueries({ queryKey: ["vehicles"] });
       }
     } catch (error) {
       console.error("Failed to delete vehicle:", error);
     } finally {
-      setLoading(false);
       setShowConfirmDelete(null);
     }
   };
@@ -163,7 +142,7 @@ const MyVehiclesScreen = () => {
                     <Ionicons name="cube-outline" size={18} color="#6B7280" />
                     <Text className="ml-2 text-sm font-medium text-gray-600">
                       {item.loadCapacity
-                        ? `${item.loadCapacity} kg`
+                        ? `${item.loadCapacity} ton`
                         : t("vehicles.unknownLoadCapacity")}
                     </Text>
                   </View>
@@ -193,35 +172,44 @@ const MyVehiclesScreen = () => {
           </View>
           {item.status !== "verified" && item.status !== "completed" && (
             <TouchableOpacity
-              className="flex-row gap-2 items-center p-2 px-4 bg-purple-50 rounded-full"
+              className="flex-row gap-2 items-center p-2 px-4 bg-purple-50 rounded"
               onPress={() => {
                 router.push(`/(apps)/vehicle/${item.id}`);
               }}
               activeOpacity={0.8}
               accessibilityLabel={t("vehicles.editVehicle")}
             >
-              {/* <Ionicons
-                name="create-outline"
-                size={22}
-                className="!text-primary "
-              /> */}
               <Text className="text-base font-semibold text-primary">
                 {t("vehicles.editVehicle", "Update")}
               </Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            className="p-2 px-4 bg-red-50 rounded-full"
+            className="p-2 px-4 bg-red-50 rounded"
             onPress={() => setShowConfirmDelete(item.id)}
             activeOpacity={0.8}
             accessibilityLabel="Delete vehicle"
           >
-            {/* <Ionicons name="trash-outline" size={20} color="#EF4444" /> */}
             <Text className="text-base font-semibold text-danger">
               {t("vehicles.deleteVehicle", "Delete")}
             </Text>
           </TouchableOpacity>
         </View>
+        {["pending", "PENDING"].includes(item.status) && (
+          <View className="flex-row items-center px-3 py-2 mt-2 rounded-lg border border-primary bg-primary/20">
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              className="!text-primary"
+            />
+            <Text className="ml-2 text-sm font-medium text-primary">
+              {t(
+                "vehicles.verificationInfo",
+                "Verification may take up to 24–48 hours after registering your new vehicle.",
+              )}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -265,11 +253,21 @@ const MyVehiclesScreen = () => {
         className="flex-1 px-4"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={loading || isRefetching}
+            onRefresh={refetch}
+          />
         }
       >
-        {vehicles.length > 0 ? (
-          vehicles.map((vehicle) => renderVehicleItem({ item: vehicle }))
+        {data && data.length > 0 ? (
+          data.map((vehicle: any) => renderVehicleItem({ item: vehicle }))
+        ) : loading ? (
+          <View className="items-center py-16" key={`loading-vehicles`}>
+            <Ionicons name="car-outline" size={64} color="#D1D5DB" />
+            <Text className="mt-4 text-base font-medium text-gray-500">
+              {t("vehicles.loadingVehicles", "Loading vehicles...")}
+            </Text>
+          </View>
         ) : (
           <View className="items-center py-16" key={`no-vehicles`}>
             <Ionicons name="car-outline" size={64} color="#D1D5DB" />

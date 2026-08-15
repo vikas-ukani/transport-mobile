@@ -7,10 +7,9 @@ import {
 import { yupResolver } from "@hookform/resolvers/yup";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
-import * as Location from "expo-location";
-import { router, useFocusEffect, useGlobalSearchParams } from "expo-router";
+import { router, useGlobalSearchParams } from "expo-router";
 import { getPreciseDistance } from "geolib";
-import { startTransition, useCallback, useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -92,9 +91,9 @@ const CreateBookingScreen = () => {
       bookingDate: new Date(),
       truckType: "pickup",
       bodyType: "container",
-      truckLength: "7",
-      loadCapacity: "10",
-      truckHeight: "10",
+      truckLength: "",
+      loadCapacity: "",
+      truckHeight: "",
       estimatedKm: "0.00",
       driverNotes: "",
     },
@@ -141,38 +140,38 @@ const CreateBookingScreen = () => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      async function getCurrentLocation() {
-        try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          // let { status } = await Location.requestForegroundPermissionsAsync();
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     async function getCurrentLocation() {
+  //       try {
+  //         let { status } = await Location.requestForegroundPermissionsAsync();
+  //         // let { status } = await Location.requestForegroundPermissionsAsync();
 
-          if (status !== "granted") {
-            toast.remove();
-            toast.error(t("common.pleaseEnableLocation"));
-            return;
-          }
+  //         if (status !== "granted") {
+  //           toast.remove();
+  //           toast.error(t("common.pleaseEnableLocation"));
+  //           return;
+  //         }
 
-          // Get current position only if region is not set
-          const current = await Location.getCurrentPositionAsync({});
-          const { latitude, longitude }: any = current.coords;
-          const [place] = await Location?.reverseGeocodeAsync({
-            latitude,
-            longitude,
-          });
-          setValue("fromLatitude", latitude);
-          setValue("fromLongitude", longitude);
-          setValue("fromAddress", place?.formattedAddress || "");
-        } catch (error) {
-          toast.dismiss();
-          toast.error(t("common.pleaseEnableLocation"));
-          console.error("Error getting location:", error);
-        }
-      }
-      getCurrentLocation();
-    }, [setValue]),
-  );
+  //         // Get current position only if region is not set
+  //         const current = await Location.getCurrentPositionAsync({});
+  //         const { latitude, longitude }: any = current.coords;
+  //         const [place] = await Location?.reverseGeocodeAsync({
+  //           latitude,
+  //           longitude,
+  //         });
+  //         setValue("fromLatitude", latitude);
+  //         setValue("fromLongitude", longitude);
+  //         setValue("fromAddress", place?.formattedAddress || "");
+  //       } catch (error) {
+  //         toast.dismiss();
+  //         toast.error(t("common.pleaseEnableLocation"));
+  //         console.error("Error getting location:", error);
+  //       }
+  //     }
+  //     getCurrentLocation();
+  //   }, [setValue]),
+  // );
 
   const calculateDistanceInKM = () => {
     if (
@@ -210,28 +209,6 @@ const CreateBookingScreen = () => {
         toast.success(resData.message || t("common.BookingRequestSubmited"));
         router.push("/(apps)/bookings");
       }
-
-      // const bookingId = resData.booking?.id;
-      // if (!bookingId) {
-      //   toast.error(t("common.bookingFailed"));
-      //   return;
-      // }
-
-      // const pay = await payForBooking(bookingId);
-      // if (pay.ok) {
-      //   // toast.success(resData.message || t("common.BookingRequestSubmited"));
-      //   toast.success(
-      //     `${resData.message || t("common.BookingRequestSubmited")} ${t("payment.checkoutSuccess")}`,
-      //   );
-      //   reset();
-      //   router.push("/(apps)/bookings");
-      //   return;
-      // } else if (pay.canceled) {
-      //   // Delete booking here
-      //   toast.error(t("payment.canceledUnpaidBooking"));
-      // } else {
-      //   toast.error(pay.message || t("payment.configurePublishableKey"));
-      // }
     } catch (error: any) {
       console.log("Catch Error", error.message);
       toast.error(error.message || t("common.bookingFailed"));
@@ -242,7 +219,7 @@ const CreateBookingScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-screen">
-      <View className="flex-row items-center px-5 py-4 border-b border-gray-100 shadow-sm">
+      <View className="flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-lg">
         <TouchableOpacity
           onPress={() => router.push("/(apps)/bookings")}
           className="flex-row gap-4 justify-start items-center p-2 -ml-2"
@@ -255,7 +232,8 @@ const CreateBookingScreen = () => {
         </TouchableOpacity>
         <View style={{ width: 40 }} />
       </View>
-      <View className="flex-1 bg-gray-50">
+
+      <View className="flex-1 bg-screen">
         <ScrollView
           className="flex-1 px-4 py-4"
           contentContainerStyle={{ paddingBottom: 30 }}
@@ -287,7 +265,7 @@ const CreateBookingScreen = () => {
               name="fromAddress"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  className="px-5 text-base font-medium   rounded-xl border-2 border-gray-200 !min-h-[60px]"
+                  className="px-5 text-base font-medium border-primary bg-white rounded-xl border !min-h-[60px]"
                   placeholder={t("booking.selectFromLocation")}
                   textAlignVertical="top"
                   value={value}
@@ -315,6 +293,7 @@ const CreateBookingScreen = () => {
                 }}
                 latitude={getValues("fromLatitude")}
                 longitude={getValues("fromLongitude")}
+                formattedAddress={getValues("fromAddress")}
                 isSetDefaultCurrentLocation={true}
               />
             )}
@@ -345,7 +324,7 @@ const CreateBookingScreen = () => {
               name="toAddress"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  className="px-5 text-base font-medium bg-white rounded-xl border-2 border-gray-200 !min-h-[60px] align-text-top"
+                  className="px-5 text-base font-medium border-primary bg-white rounded-xl border !min-h-[60px]"
                   placeholder={t("booking.selectToLocation")}
                   textAlignVertical="top"
                   value={value}
@@ -373,6 +352,7 @@ const CreateBookingScreen = () => {
                 longitude={
                   getValues("toLongitude") || getValues("fromLongitude")
                 }
+                formattedAddress={getValues("toAddress")}
               />
             )}
           </View>
@@ -431,6 +411,7 @@ const CreateBookingScreen = () => {
                   }
                 }}
                 minimumDate={new Date()}
+                maximumDate={new Date(new Date().setDate(new Date().getDate() + 1))}
               />
             )}
           </View>
@@ -458,8 +439,8 @@ const CreateBookingScreen = () => {
                       size={20}
                       color={
                         getValues("truckType") === "pickup"
-                          ? "#7C3AED"
-                          : "#1F2937"
+                          ? "text-primary"
+                          : "text-gray-900"
                       }
                     />
                     <Text
@@ -486,8 +467,8 @@ const CreateBookingScreen = () => {
                       size={22}
                       color={
                         getValues("truckType") === "truck"
-                          ? "#7C3AED"
-                          : "#1F2937"
+                          ? "text-primary"
+                          : "text-gray-900"
                       }
                     />
                     <Text
@@ -560,8 +541,8 @@ const CreateBookingScreen = () => {
                       size={28}
                       color={
                         getValues("bodyType") === "container"
-                          ? "#7C3AED"
-                          : "#000000"
+                          ? "!text-primary"
+                          : "text-black"
                       }
                     />
                     <Text
@@ -587,9 +568,16 @@ const CreateBookingScreen = () => {
 
           {/* Truck Length */}
           <View className="mb-6">
-            <Text className="mb-2 text-lg font-bold text-gray-800">
-              {t("booking.truckLength")}
-            </Text>
+            <View className="flex-row gap-1 mb-3 text-sm font-bold text-gray-700">
+              <Text className="font-bold">{t("booking.truckLength")}</Text>
+              <Text className="items-start text-danger">*</Text>
+              {errors.bookingDate && (
+                <Text className="ml-1 text-sm font-medium text-red-500">
+                  {errors.truckLength?.message}
+                </Text>
+              )}
+            </View>
+
             <Controller
               control={control}
               name="truckLength"
@@ -600,6 +588,14 @@ const CreateBookingScreen = () => {
                     onValueChange={onChange}
                     style={{ height: 50 }}
                   >
+                    <Picker.Item
+                      label={t(
+                        "booking.selectTruckLength",
+                        "Select truck length",
+                      )}
+                      value=""
+                      enabled={false}
+                    />
                     {TRUCK_LENGTH_OPTIONS.map((opt) => (
                       <Picker.Item
                         key={opt.value}
@@ -620,9 +616,16 @@ const CreateBookingScreen = () => {
 
           {/* Truck Height */}
           <View className="mb-6">
-            <Text className="mb-2 text-lg font-bold text-gray-800">
-              {t("vehicles.truckHeight")}
-            </Text>
+            <View className="flex-row gap-1 mb-3 text-sm font-bold text-gray-700">
+              <Text className="font-bold">{t("booking.truckHeight")}</Text>
+              <Text className="items-start text-danger">*</Text>
+              {errors.bookingDate && (
+                <Text className="ml-1 text-sm font-medium text-red-500">
+                  {errors.truckHeight?.message}
+                </Text>
+              )}
+            </View>
+
             <Controller
               control={control}
               name="truckHeight"
@@ -633,6 +636,14 @@ const CreateBookingScreen = () => {
                     onValueChange={onChange}
                     style={{ height: 50 }}
                   >
+                    <Picker.Item
+                      label={t(
+                        "booking.selectTruckheight",
+                        "Select truck height",
+                      )}
+                      value=""
+                      enabled={false}
+                    />
                     {TRUCK_HEIGHT_OPTIONS.map((opt) => (
                       <Picker.Item
                         key={opt.value}
@@ -653,19 +664,35 @@ const CreateBookingScreen = () => {
 
           {/* Load Capacity */}
           <View className="mb-6">
-            <Text className="mb-2 text-lg font-bold text-gray-800">
-              {t("vehicles.loadCapacity")}
-            </Text>
+            <View className="flex-row gap-1 mb-3 text-sm font-bold text-gray-700">
+              <Text className="font-bold">{t("booking.loadCapacity")}</Text>
+              <Text className="items-start text-danger">*</Text>
+              {errors.bookingDate && (
+                <Text className="ml-1 text-sm font-medium text-red-500">
+                  {errors.loadCapacity?.message}
+                </Text>
+              )}
+            </View>
+
             <Controller
               control={control}
               name="loadCapacity"
               render={({ field: { onChange, value } }) => (
-                <View className="overflow-hidden bg-white rounded-xl border-2 border-gray-200 text-dark">
+                <View className="overflow-hidden py-2 bg-white rounded-xl border-2 border-gray-200 text-dark">
                   <Picker
                     selectedValue={value}
                     onValueChange={onChange}
                     style={{ height: 50 }}
                   >
+                    <Picker.Item
+                      label={t(
+                        "booking.selectLoadCapacity",
+                        "Select load capacity",
+                      )}
+                      value=""
+                      enabled={false}
+                    />
+
                     {TRUCK_LOAD_CAPACITY_OPTIONS.map((opt) => (
                       <Picker.Item
                         key={opt.value}

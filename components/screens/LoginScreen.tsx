@@ -1,12 +1,12 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -77,17 +77,25 @@ const LoginScreen = () => {
         >
           {/* Header Section */}
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <LinearGradient
+            <View className="flex-row items-center mt-6">
+              <Image
+                source={require("../../assets/logo.png")}
+                style={{ width: 130, height: 130 }}
+                resizeMode="contain"
+              />
+            </View>
+            {/* <LinearGradient
                 colors={["#9333EA", "#7C3AED"]}
                 style={styles.logoCircle}
               >
                 <Ionicons name="car-sport" size={40} color="#FFFFFF" />
-              </LinearGradient>
-            </View>
-            <Text style={styles.title}>{t("login.title")}</Text>
+              </LinearGradient> */}
+            <Text className="!text-primary" style={styles.title}>
+              {t("login.title")}
+            </Text>
             <Text style={styles.subtitle}>{t("login.subtitle")}</Text>
             <Text style={styles.subtitle}>{getApiUrl()}</Text>
+            {/* {__DEV__ && <Text style={styles.subtitle}>{getApiUrl()}</Text>} */}
           </View>
 
           {/* Form Section */}
@@ -151,7 +159,7 @@ const LoginScreen = () => {
               style={styles.forgotPasswordContainer}
               onPress={() => router.push("/forgot-password")}
             >
-              <Text style={styles.forgotPasswordText}>
+              <Text style={styles.forgotPasswordText} className="text-primary">
                 {t("login.forgotPassword")}
               </Text>
             </TouchableOpacity>
@@ -159,38 +167,25 @@ const LoginScreen = () => {
             {/* Login Button */}
             <TouchableOpacity
               style={[
-                styles.loginButton,
+                // styles.loginButton,
                 loading && styles.loginButtonDisabled,
               ]}
+              className="flex flex-row justify-center items-center w-full h-16 text-white bg-gradient-to-r rounded-xl bg-primary"
               onPress={handleSubmit(onSubmit)}
               disabled={loading}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={
-                  loading ? ["#9CA3AF", "#6B7280"] : ["#9333EA", "#7C3AED"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
-              >
-                <>
-                  <Text style={styles.loginButtonText}>
-                    {t("common.login")}
-                  </Text>
-
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <Ionicons
-                      name="arrow-forward"
-                      size={20}
-                      color="#FFFFFF"
-                      style={styles.buttonIcon}
-                    />
-                  )}
-                </>
-              </LinearGradient>
+              <Text style={styles.loginButtonText}>{t("common.login")}</Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Ionicons
+                  name="finger-print-sharp"
+                  size={22}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+              )}
             </TouchableOpacity>
 
             {/* Divider */}
@@ -209,7 +204,9 @@ const LoginScreen = () => {
                 onPress={() => router.replace("/(auth)/register")}
                 // onPress={() => router.push('register')}
               >
-                <Text style={styles.signUpLink}>{t("login.signUp")}</Text>
+                <Text className="!text-primary" style={styles.signUpLink}>
+                  {t("login.signUp")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

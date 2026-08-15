@@ -1,17 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MyActiveRideScreen from "./MyActiveRides";
-import RidesScreen from "./RidesScreen";
+
+// Import the PagerView explicitly if needed (per react-native-tab-view 3.x+ guidance)
+
+import MyActiveRideScreen from "./MyActiveRideScreen";
 import MyFinishedRidesScreen from "./MyFinishedRidesScreen";
+import RidesScreen from "./RidesScreen";
 
-const FinishedRidesScreen = () => (
-  <View className="flex-1 justify-center items-center">
-    <Text>Finished Rides (Coming soon)</Text>
-  </View>
-);
-
+// Fallback for deprecated SceneMap usage, provide functions directly
 const RideTabView = () => {
   const { t } = useTranslation();
   const [index, setIndex] = useState(0);
@@ -22,63 +20,36 @@ const RideTabView = () => {
     { key: "finished", title: t("booking.finishedTab", "Finished") },
   ];
 
-  const renderScene = () => {
-    switch (tabs[index].key) {
-      case "active":
-        return <RidesScreen />;
-      case "my":
-        return <MyActiveRideScreen />;
-      case "finished":
-        return <MyFinishedRidesScreen />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-screen">
-      <View className="flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
-        <Text className="text-xl font-bold text-gray-900">
-          {t("booking.rides", "Rides")}
-        </Text>
-      </View>
-      {/* Top (horizontal) tab bar */}
-      <View className="flex-row w-full border-b border-gray-200">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
-        >
-          {tabs.map((route, i) => (
-            <TouchableOpacity
-              key={route.key}
-              className={[
-                "flex-1 py-4 px-1 items-center justify-center",
-                index === i
-                  ? "text-primary border-b-4 border-primary bg-screen"
-                  : "",
-              ].join(" ")}
-              style={{
-                minWidth: `${100 / tabs.length}%`,
-                flex: 1,
-              }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+      {/* Content */}
+      <View className="flex-1">
+        <View className="flex-row border-b !w-full !justify-evenly border-[#E5E7EB] shadow-xl bg-white px-2">
+          {tabs.map((tab, i) => (
+            <Pressable
+              key={tab.key}
               onPress={() => setIndex(i)}
-              activeOpacity={0.8}
+              className="flex-1 justify-center items-center"
             >
               <Text
-                className={[
-                  "font-bold text-base",
-                  index === i ? "text-primary" : "text-gray-500",
-                ].join(" ")}
+                className={`
+                  font-bold text-[15px] capitalize py-3
+                  ${index === i ? "text-primary border-b-2 w-full text-center border-primary" : "text-[#8CA2B6]"}
+                `}
               >
-                {route.title}
+                {tab.title}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
-        </ScrollView>
+        </View>
+        <View className="flex-1">
+          {index === 0 && <RidesScreen />}
+          {index === 1 && <MyActiveRideScreen />}
+          {index === 2 && <MyFinishedRidesScreen />}
+        </View>
       </View>
-      {/* Content */}
-      <View className="flex-1">{renderScene()}</View>
+
+      {/* <View className="flex-1">{renderScene}</View> */}
     </SafeAreaView>
   );
 };

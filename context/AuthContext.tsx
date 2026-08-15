@@ -1,16 +1,17 @@
 import { toast } from "@backpackapp-io/react-native-toast";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import {
-    createContext,
-    ReactNode,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { SYSTEM_DEFAULT_LANGUAGE } from "../i18n/config";
+import { AUTH_TOKEN_KEY, deleteStoreBy, setStoreBy } from "../lib/session";
 import apiService from "../services/api.service";
 import socketService from "../services/socket";
 
@@ -26,12 +27,9 @@ export interface User {
   vehicleRegistration?: string;
   vehiclePhoto?: string;
   changeLanguage?: string;
-
   address?: string;
   latitude?: number;
   longitude?: number;
-  /** In-app wallet in minor units (e.g. paise / cents). From login or `/me`. */
-  walletAmount?: number;
 }
 
 interface AuthContextType {
@@ -45,7 +43,6 @@ interface AuthContextType {
   ) => Promise<{ error?: string } | void>;
   register: (userData: any, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshWalletBalance: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
 }
 
@@ -53,155 +50,169 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
-}: any) => {
+}) => {
   const { i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Prevent race conditions with isMounted ref
+  const isMounted = useRef(true);
 
-  // Load user from storage on mount
-  useEffect(() => {
-    loadUserFromStorage();
+  // Helper to reset authentication
+  const resetAuth = useCallback(async (showToast = true, message?: string) => {
+    await deleteStoreBy(AUTH_TOKEN_KEY);
+    socketService.disconnect();
+    setUser(null);
+    if (showToast && message) toast.error(message);
+    // Only navigate if not already on /login
+    if (
+      router?.replace &&
+      (!router?.pathname || router.pathname !== "/login")
+    ) {
+      router.replace("/login");
+    }
   }, []);
 
-  // Connect socket when user is authenticated
-  useEffect(() => {
-    if (user) {
-      i18n.changeLanguage(user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE);
-      // i18n.defaultLocale = user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE;
-      socketService.connect();
-    } else {
-      socketService.disconnect();
-    }
-  }, [user]);
-
-  const loadUserFromStorage = async () => {
+  // Fetch user info from backend, handle auth/session state
+  const fetchUserFromBackend = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const storedUser = await AsyncStorage.getItem("user");
-      const token = await AsyncStorage.getItem("authToken");
-
-      // Check if auto logout or not
-      if (storedUser && token) {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
+      const res = await apiService.me();
+      if (res.success === false || res.detail === "Not authenticated") {
+        await resetAuth(false);
+      } else if (res.user) {
+        if (isMounted.current) setUser(res.user);
       } else {
-        clearStorage();
+        await resetAuth(false);
       }
     } catch (error) {
-      console.error("Error loading user from storage:", error);
+      await resetAuth(true, "Session expired. Please log in again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [resetAuth]);
 
-  const me = async () => {
+  // On mount/unmount
+  useEffect(() => {
+    isMounted.current = true;
+    fetchUserFromBackend();
+    return () => {
+      isMounted.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Synchronize language and socket with user state
+  useEffect(() => {
+    const syncUserState = async () => {
+      if (user) {
+        // Only connect if necessary
+        i18n.changeLanguage(user.changeLanguage || SYSTEM_DEFAULT_LANGUAGE);
+        if (!socketService.isConnected()) {
+          await socketService.connect();
+        }
+      } else {
+        socketService.disconnect();
+      }
+    };
+    syncUserState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Refined me (auth check/refresh) function
+  const me = useCallback(async () => {
+    setIsLoading(true);
     try {
       const res = await apiService.me();
-      console.log("ME res", res);
       if (res.success === false || res.detail === "Not authenticated") {
-        logout();
-        router.replace("/login");
-      } else {
-        const { user: userData, token } = res;
-        await AsyncStorage.setItem("authToken", token);
-        await AsyncStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
+        await resetAuth(true, "Session expired. Please log in again.");
+      } else if (res.user) {
+        setUser(res.user);
         await socketService.connect();
         router.replace("/(apps)/(tabs)");
       }
     } catch (error: any) {
-      console.log("Got Catch on /ME:::", error);
-      toast.error("Session expired. Please log in again.");
-      router.replace("/login");
+      await resetAuth(true, "Session expired. Please log in again.");
       await socketService.disconnect();
-      // return error;
     } finally {
-      console.log("finally ME::");
-      router.replace("/(apps)/(tabs)");
+      setIsLoading(false);
     }
-  };
+  }, [resetAuth]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
     try {
       const res = await apiService.login(email, password);
-      const { error, user: userData, token } = res;
-      if (res.success === false || error) {
-        toast.error(error || res.message || "Login failed. Please try again.");
+      if (res.success === false || res.error) {
+        toast.error(res.message || "Login failed. Please try again.");
+        setUser(null);
+        await deleteStoreBy(AUTH_TOKEN_KEY);
+        return {
+          error: res.message || "Login failed. Please try again.",
+        };
       } else {
-        await AsyncStorage.setItem("authToken", token);
-        await AsyncStorage.setItem("user", JSON.stringify(userData));
-        toast.success(res.message || "Login successful done.");
+        toast.success(res.message || "Login successful.");
+        if (res.token) {
+          await setStoreBy(AUTH_TOKEN_KEY, res.token);
+        } else {
+          await deleteStoreBy(AUTH_TOKEN_KEY);
+        }
+        setUser(res.user);
+        console.log("SetUser Data", user);
+        await socketService.connect();
+        router.replace("/(apps)/(tabs)");
       }
-
-      setUser(userData);
-      await socketService.connect();
-      router.replace("/(apps)/(tabs)");
     } catch (error: any) {
-      throw Error(error.response.data);
+      setUser(null);
+      await deleteStoreBy(AUTH_TOKEN_KEY);
+      toast.error("Login failed due to unexpected error. Please try again.");
+      return { error: error?.response?.data || "Unknown error" };
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
+  console.log("user is", user?.id, user?.name, user?.email);
 
-  const register = async (userData: any, password: string) => {
+  const register = useCallback(async (userData: any, password: string) => {
+    setIsLoading(true);
     try {
       const response = await apiService.register({ ...userData, password });
       if (response.success) {
-        // Registration successful
         toast.success(response.message || "Registration successful");
-        const { user, token } = response;
-        await AsyncStorage.setItem("authToken", token);
-        await AsyncStorage.setItem("user", JSON.stringify(user));
-        setUser(user);
+        setUser(response.user);
+        if (response.token) {
+          await setStoreBy(AUTH_TOKEN_KEY, response.token);
+        } else {
+          await deleteStoreBy(AUTH_TOKEN_KEY);
+        }
         await socketService.connect();
         router.replace("/(apps)/(tabs)");
       } else {
-        toast.error(response.message || "Registration successful");
+        toast.error(response.message || "Registration failed");
+        setUser(null);
+        await deleteStoreBy(AUTH_TOKEN_KEY);
       }
     } catch (error: any) {
-      return error.response.data;
+      setUser(null);
+      await deleteStoreBy(AUTH_TOKEN_KEY);
+      toast.error("Registration failed due to unexpected error.");
+      return error?.response?.data;
+    } finally {
+      setIsLoading(false);
     }
-  };
-  const clearStorage = async () => {
-    if ((await AsyncStorage.getItem("authToken")) !== null) {
-      await AsyncStorage.removeItem("authToken");
-    }
-    if ((await AsyncStorage.getItem("user")) !== null) {
-      await AsyncStorage.removeItem("user");
-    }
-    socketService.disconnect();
-    setUser(null);
-  };
-
-  const logout = async () => {
-    try {
-      clearStorage();
-      toast.success("Logout successfully.");
-      router.push("/login");
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
-  };
-
-  const updateUser = useCallback(async (userData: Partial<User>) => {
-    setUser((current) => {
-      if (!current) return current;
-      const updatedUser = { ...current, ...userData } as User;
-      AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-      return updatedUser;
-    });
   }, []);
 
-  const refreshWalletBalance = useCallback(async () => {
-    try {
-      const user = await apiService.getWalletBalance();
-      console.log('Updating User wallet balance', user)
-      await updateUser({
-        walletAmount: user.walletAmount || 0,
-      });
-    } catch (error: any) {
-      console.log(
-        "Catch Wallet Refresh: ",
-        error.message || "Wallet update failed.",
-      );
-    }
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+    socketService.disconnect();
+    setUser(null);
+    await deleteStoreBy(AUTH_TOKEN_KEY);
+    router.push("/login");
+    setIsLoading(false);
+    toast.success("Logged out successfully.");
+  }, []);
+
+  const updateUser = useCallback(async (userData: Partial<User>) => {
+    setUser((current) => (current ? { ...current, ...userData } : current));
   }, []);
 
   return (
@@ -215,7 +226,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         logout,
         updateUser,
         me,
-        refreshWalletBalance,
       }}
     >
       {children}

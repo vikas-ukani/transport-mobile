@@ -1,9 +1,8 @@
 import { toast } from "@backpackapp-io/react-native-toast";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { router } from "expo-router";
 import { Platform } from "react-native";
-import socketService from "./socket";
+import { AUTH_TOKEN_KEY, deleteStoreBy, getStoreBy } from "../lib/session";
 
 export const getBaseUrl = () => {
   if (Platform.OS === "web") {
@@ -43,7 +42,7 @@ class ApiService {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       async (config: any) => {
-        const token = await AsyncStorage.getItem("authToken");
+        const token = await getStoreBy(AUTH_TOKEN_KEY);
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
           config.headers["Content-Type"] = "application/json";
@@ -69,13 +68,13 @@ class ApiService {
           resData?.detail === "Not authenticated"
         ) {
           // Token expired or invalid
-          if ((await AsyncStorage.getItem("authToken")) !== null) {
-            await AsyncStorage.removeItem("authToken");
+          if ((await getStoreBy(AUTH_TOKEN_KEY)) !== null) {
+            await deleteStoreBy(AUTH_TOKEN_KEY);
           }
-          if ((await AsyncStorage.getItem("user")) !== null) {
-            await AsyncStorage.removeItem("user");
+          if ((await getStoreBy("user")) !== null) {
+            await deleteStoreBy("user");
           }
-          socketService.disconnect();
+          // socketService.disconnect();
           // redirecting to login page
           router.push("/login");
         }
@@ -104,7 +103,10 @@ class ApiService {
       return response.data;
     } catch (err: any) {
       console.error("Login Error: ", err.message);
-      return { error: "Login failed. Please check your credentials." };
+      return {
+        success: false,
+        message: "Login failed. Please check your credentials.",
+      };
     }
   }
 
@@ -220,8 +222,39 @@ class ApiService {
     const response = await this.client.get(`/my-running-rides`);
     return response.data;
   }
+  async closeBooking(id: string) {
+    const response = await this.client.get(`/cancel-booking/${id}`);
+    return response.data;
+  }
+
+  async cancelActiveRide(id: string) {
+    const response = await this.client.get(`/cancel-active-ride/${id}`);
+    return response.data;
+  }
+
+  async createBookingPayOrder(bookingId: string) {
+    const response = await this.client.get(
+      `/create-booking-pay-order/${bookingId}`,
+    );
+    return response.data;
+  }
+
+  async verifyPayment(payment: any) {
+    const res = await this.client.post(`/verify-payment`, payment);
+    return res.data;
+  }
+  async verifyBookingPayment(bookingId: string, payment: any) {
+    const res = await this.client.post(
+      `/verify-booking-payment/${bookingId}`,
+      payment,
+    );
+    return res.data;
+  }
+
   async getMyFinishedRide({ page, limit }: { page: number; limit: number }) {
-    const response = await this.client.get(`/my-finished-rides?page=${page}&limit=${limit}`);
+    const response = await this.client.get(
+      `/my-finished-rides?page=${page}&limit=${limit}`,
+    );
     return response.data;
   }
 
@@ -299,6 +332,10 @@ class ApiService {
     return response.data;
   }
 
+  async createPostPayOrder() {
+    const response = await this.client.get(`/create-post-pay-order`);
+    return response.data;
+  }
   // Post endpoints
   async createPost(postData: any) {
     try {
@@ -399,46 +436,6 @@ class ApiService {
     return response.data;
   }
 
-  async createWalletOrder(data: any) {
-    const response = await this.client.post("/create-wallet-order", data);
-    return response.data;
-  }
-
-  async successWalletTopup(data: any) {
-    const response = await this.client.post("/success-wallet-topup", data);
-    return response.data;
-  }
-
-  async getWalletBalance() {
-    const response = await this.client.get("/wallet-balance");
-    return response.data;
-  }
-
-  async walletTopUp(data: any) {
-    const response = await this.client.post("/wallet-topup", data);
-    return response.data;
-  }
-
-  async updateWallet(data: any) {
-    const response = await this.client.post("/wallet-update", data);
-    return response.data;
-  }
-
-  async walletDetails(data: any) {
-    const response = await this.client.post("/wallet-detils", data);
-    return response.data;
-  }
-
-  async walletStatements(data: any) {
-    const response = await this.client.post("/wallet-statements", data);
-    return response.data;
-  }
-
-  async walletWithdraw(data: any) {
-    const response = await this.client.post("/wallet-withdraw", data);
-    return response.data;
-  }
-
   async placeBookingBid(
     bookingId: string,
     body: { amount: number; note?: string },
@@ -483,7 +480,14 @@ class ApiService {
     const match = /\.(\w+)$/.exec(filename);
     const typeE = match ? `image/${match[1]}` : `image`;
 
-    const name = `${type}_` + fileUri.split("/").pop() || `${Date.now()}.jpg`;
+    // This line has a subtle bug due to operator precedence:
+    // const name = `${type}_` + fileUri.split("/").pop() || `${Date.now()}.jpg`;
+    // When fileUri.split("/").pop() returns '', it'll fallback to Date.now, but only in the addition, not as a whole expression.
+    // Correct precedence is needed with parentheses:
+    const name = fileUri.split("/").pop()
+      ? `${type}_` + fileUri.split("/").pop()
+      : `${Date.now()}.jpg`;
+
     let formData = new FormData();
 
     formData.append("file", {

@@ -108,7 +108,6 @@ export const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: "#9333EA",
     fontWeight: "600",
   },
   loginButton: {
@@ -165,11 +164,9 @@ export const styles = StyleSheet.create({
   },
   signUpText: {
     fontSize: 14,
-    color: "#6B7280",
   },
   signUpLink: {
     fontSize: 14,
-    color: "#9333EA",
     fontWeight: "700",
   },
 });

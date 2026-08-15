@@ -12,6 +12,8 @@ const CustomInput = ({
   editable = true,
   keyboardType = "default",
   maxLength,
+  numberOfLines,
+  multiline,
   frontIcon,
   frontIconColor,
   backIcon,
@@ -35,12 +37,13 @@ const CustomInput = ({
         control={control}
         name={name}
         render={({ field: { onChange, onBlur, value } }) => (
-          <View className="flex-row items-center px-0 py-0 bg-white rounded-xl border-2 border-purple-400">
+          <View className="flex-row items-center px-0 py-0 bg-white rounded-xl border-2 border-primary">
             {frontIcon && (
               <View className="mr-1 ml-2">
                 <Ionicons
                   name={frontIcon}
                   size={20}
+                  className="!text-primary"
                   color={frontIconColor ? frontIconColor : "#c084fc"}
                 />
               </View>
@@ -48,8 +51,13 @@ const CustomInput = ({
             {secureTextEntry}
 
             <TextInput
-              style={{ flex: 1 }}
-              className="px-3 py-3.5 w-full text-base font-medium"
+              style={{
+                flex: 1,
+                ...(multiline
+                  ? { minHeight: 100, textAlignVertical: "top" }
+                  : {}),
+              }}
+              className="px-3 py-3.5 w-full text-base font-medium text-primary"
               placeholder={placeholder}
               value={value}
               onChangeText={onChange}
@@ -63,6 +71,10 @@ const CustomInput = ({
               secureTextEntry={secureTextEntry}
               // Set maxLength prop dynamically if provided in props
               {...(typeof maxLength !== "undefined" ? { maxLength } : {})}
+              {...(typeof numberOfLines !== "undefined"
+                ? { numberOfLines }
+                : {})}
+              {...(typeof multiline !== "undefined" ? { multiline } : {})}
             />
             {backIcon && (
               <TouchableOpacity
@@ -74,6 +86,7 @@ const CustomInput = ({
                   <Ionicons
                     name={backIcon}
                     size={20}
+                    className="!text-primary"
                     color={backIconColor ? backIconColor : "#c084fc"}
                   />
                 </View>

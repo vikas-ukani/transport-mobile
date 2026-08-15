@@ -1,27 +1,27 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+// import { useFocusEffect } from "expo-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { RefreshControl } from "react-native-gesture-handler";
 import { useAuth, User } from "../../context/AuthContext";
 import apiService from "../../services/api.service";
-import socketService from "../../services/socket";
 
 interface Bid {
   id: string;
@@ -80,32 +80,49 @@ const BidsModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBids = useCallback(async () => {
-    if (!bookingId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiService.getBidsForBooking(bookingId);
-      if (res.success) {
-        setBids(res.bids?.slice(0, 5) || []);
-      } else {
-        setError(res.message || t("booking.failedToLoadBids"));
-        setBids([]);
-      }
-    } catch (e) {
-      setError(t("booking.failedToLoadBids"));
-      setBids([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [bookingId, t]);
+  const {
+    data: bidsData,
+    isLoading: bidsLoading,
+    isError: bidsError,
+    refetch: refetchBids,
+    error: bidsQueryError,
+  } = useQuery({
+    queryKey: ["bids-for-booking", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return { success: false, bids: [], message: "" };
+      return await apiService.getBidsForBooking(bookingId);
+    },
+    enabled: !!bookingId && visible,
+    // Always refetch every open/close
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
 
   useEffect(() => {
+    // Whenever the modal becomes visible (on open/close), refetch
     if (visible && bookingId) {
-      fetchBids();
+      refetchBids();
       setAmount("");
     }
-  }, [visible, bookingId, fetchBids]);
+  }, [visible, bookingId, refetchBids]);
+
+  useEffect(() => {
+    if (bidsLoading) setLoading(true);
+    else setLoading(false);
+
+    // Handle query error and set error message
+    if (bidsError || (bidsData && !bidsData.success)) {
+      setError(
+        bidsQueryError?.message ||
+          bidsData?.message ||
+          t("booking.failedToLoadBids"),
+      );
+      setBids([]);
+    } else if (bidsData && bidsData.success) {
+      setError(null);
+      setBids(bidsData.bids?.slice(0, 5) || []);
+    }
+  }, [bidsLoading, bidsError, bidsData, bidsQueryError, t]);
 
   const handleBid = async () => {
     toast.remove();
@@ -126,14 +143,6 @@ const BidsModal = ({
         return;
       }
 
-      if (user?.walletAmount < bidValue) {
-        toast.error(
-          t("wallet.insufficientBalance") ||
-            "Insufficient wallet balance to place this bid.",
-        );
-        setSubmitting(false);
-        return;
-      }
       const params = {
         amount: bidValue,
         note: "",
@@ -142,14 +151,14 @@ const BidsModal = ({
       if (res.success) {
         toast.success(t("booking.bidSuccess"));
         setAmount("");
-        fetchBids();
+        refetchBids();
       } else {
         toast.error(res.message || t("booking.failedToBid"));
         setError(res.message || t("booking.failedToBid"));
       }
     } catch (e: any) {
       toast.error(e.message || t("booking.failedToBid"));
-      setError(t("booking.failedToBid"));
+      setError(t(e.message || "booking.failedToBid"));
     } finally {
       setSubmitting(false);
     }
@@ -183,25 +192,21 @@ const BidsModal = ({
                 justifyContent: "flex-start",
               }}
             >
-              <View style={{ alignItems: "center", marginBottom: 10 }}>
-                <View
-                  style={{
-                    width: 50,
-                    height: 5,
-                    borderRadius: 3,
-                    backgroundColor: "#DDD",
-                    marginBottom: 10,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontWeight: "700",
-                    fontSize: 18,
-                    color: "#222",
-                  }}
+              <View className="flex-row justify-center items-center mb-2">
+                <View className="relative flex-row flex-1 justify-center items-center">
+                  <View className="absolute left-1/2 -top-3 -translate-x-1/2 z-10 w-[50px] h-[5px] rounded bg-gray-300 mb-2" />
+                  <Text className="font-bold text-[18px] text-gray-900">
+                    {t("booking.bidding")}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={onClose}
+                  className="absolute top-0 right-0 p-2"
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityLabel="Close"
                 >
-                  {t("booking.bidding")}
-                </Text>
+                  <Ionicons name="close" size={22} className="!text-danger" />
+                </TouchableOpacity>
               </View>
 
               {loading ? (
@@ -241,23 +246,19 @@ const BidsModal = ({
                             justifyContent: "center",
                             alignItems: "center",
                             marginRight: 10,
+                            overflow: "hidden",
                           }}
                         >
                           {item?.driver?.photo ? (
-                            <View
+                            <Image
+                              source={{ uri: item.driver.photo ?? "" }}
                               style={{
                                 width: 34,
                                 height: 34,
                                 borderRadius: 17,
-                                overflow: "hidden",
+                                resizeMode: "cover",
                               }}
-                            >
-                              <img
-                                src={item.driver.photo || ""}
-                                width={34}
-                                height={34}
-                              />
-                            </View>
+                            />
                           ) : (
                             <Text className="text-base font-bold text-primary">
                               {item.driver?.name?.[0]?.toUpperCase() || "U"}
@@ -266,7 +267,9 @@ const BidsModal = ({
                         </View>
                         <View style={{ flex: 1 }}>
                           <View className="flex-row gap-2 justify-start items-center">
-                            <Text style={{ color: "#222", fontWeight: "600" }}>
+                            <Text
+                              className={`font-semibold  ${user.name === item.driver.name ? "text-primary" : "text-gray-800"}`}
+                            >
                               {item.driver.name || ""}
                             </Text>
                             {typeof item.driver?.rating === "number" && (
@@ -291,16 +294,25 @@ const BidsModal = ({
                         </View>
                         <View>
                           <Text
-                            className="font-bold text-primary text-[16px] select-none"
                             selectable={false}
+                            className={`font-bold  select-none  ${user?.id === item.driver.id ? "text-primary" : "text-gray-800"}`}
                             style={{
-                              filter:
+                              opacity: user?.id !== item.driver.id ? 0.3 : 1,
+                              textShadowColor:
                                 user?.id !== item.driver.id
-                                  ? "blur(4px)"
-                                  : "blur(0px)",
+                                  ? "rgba(156,163,175,0.35)"
+                                  : undefined,
+                              textShadowOffset:
+                                user?.id !== item.driver.id
+                                  ? { width: 0, height: 2 }
+                                  : undefined,
+                              textShadowRadius:
+                                user?.id !== item.driver.id ? 5 : 0,
                             }}
                           >
-                            ₹ {item.amount}
+                            {user?.id !== item.driver.id
+                              ? "$$$$$"
+                              : `₹ ${item.amount}`}
                           </Text>
                         </View>
                       </View>
@@ -374,7 +386,6 @@ const BidsModal = ({
 
 const RidesScreen = () => {
   const { t } = useTranslation();
-  const { refreshWalletBalance } = useAuth();
 
   // No more local rides state. React Query will manage fetching and cache.
   const [page, setPage] = useState(1);
@@ -396,26 +407,6 @@ const RidesScreen = () => {
     placeholderData: keepPreviousData,
     // keepPreviousData lets us swap pages without flicker (if paging is implemented in future)
   });
-
-  useEffect(() => {
-    refreshWalletBalance();
-  }, []);
-
-  // Use socket to refetch rides on changes
-  useFocusEffect(
-    useCallback(() => {
-      socketService.connect();
-      const onNew = () => {
-        refetch();
-      };
-      socketService.on("booking:created", onNew);
-      socketService.on("booking:updated", onNew);
-      return () => {
-        socketService.off("booking:created", onNew);
-        socketService.off("booking:updated", onNew);
-      };
-    }, [refetch]),
-  );
 
   const onRefresh = useCallback(() => {
     refetch();
@@ -607,7 +598,7 @@ const RidesScreen = () => {
                       <Ionicons name="cube-outline" size={16} color="#4B5563" />
                       <Text className="ml-2 text-sm text-gray-600">
                         {booking.loadCapacity
-                          ? `${booking.loadCapacity} kg`
+                          ? `${booking.loadCapacity} ton`
                           : t("vehicles.unknownLoadCapacity")}
                       </Text>
                     </View>
@@ -641,7 +632,9 @@ const RidesScreen = () => {
                 </View>
 
                 {/* Action Button */}
-                <View className="flex-row justify-end items-center px-5 pb-5">
+                <View className="flex-row-reverse justify-between items-center px-5 pb-5">
+                  {/* Only show your remaining amount if you are the leader */}
+
                   <TouchableOpacity
                     activeOpacity={0.85}
                     className="px-6 py-2 mt-2 rounded-xl shadow-md bg-primary"

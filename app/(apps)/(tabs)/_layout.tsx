@@ -1,4 +1,4 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, FontAwesome5 } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { IconSymbol } from "../../../components/ui/icon-symbol";
@@ -41,8 +41,8 @@ export default function AppTabLayout() {
       <Tabs.Screen
         name="rides"
         options={{
-          tabBarLabel: t("common.rides"),
-          title: t("common.rides"),
+          tabBarLabel: t("common.trip", "Trip"),
+          title: t("common.trip", "Trip"),
           href: user?.type === "driver" ? "/rides" : null,
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
@@ -58,7 +58,8 @@ export default function AppTabLayout() {
         options={{
           tabBarLabel: t("common.myVehicles"),
           title: t("common.myVehicles"),
-          href: user?.type === "driver" ? "/vehicles" : null,
+          href: null,
+          // href: user?.type === "driver" ? "/vehicles" : null,
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome
               name="truck"
@@ -77,9 +78,24 @@ export default function AppTabLayout() {
           title: t("common.booking"),
           href: user?.type === "customer" ? "/bookings" : null,
           tabBarIcon: ({ color, focused }) => (
-            <FontAwesome
-              name="bookmark"
+            <FontAwesome5
+              name="boxes"
               size={24}
+              className={focused ? "!text-primary":"!text-gray-500"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="garages"
+        options={{
+          tabBarLabel: t("common.garages", "Garage"),
+          title: t("common.garages", "Garage"),
+          // href: user?.type === "customer" ? "/garages" : null,
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5
+              name="tools"
+              size={20}
               className={focused ? "!text-primary":"!text-gray-500"}
             />
           ),

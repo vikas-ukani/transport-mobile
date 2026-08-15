@@ -10,12 +10,14 @@
     "ios": {
       "bundleIdentifier": "com.vikasdev.transport"
     },
+    "newArchEnabled": false,
     "supportsTablet": true,
     "infoPlist": {
       "LSApplicationQueriesSchemes": [
         "phonepe",
         "tez",
         "paytmmp",
+        "gpay",
         "bhim",
         "credpay"
       ]
@@ -38,10 +40,10 @@
       },
       "plugins": [
         "expo-router",
-        "expo-maps",
+        "react-native-maps",
         {
-          "requestLocationPermission": true,
-          "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
+          "androidGoogleMapsApiKey": "$(EXPO_PUBLIC_GOOGLE_MAPS_API_KEY)",
+          "iosGoogleMapsApiKey": "$(EXPO_PUBLIC_GOOGLE_MAPS_API_KEY)"
         },
         "expo-build-properties",
         [
@@ -53,7 +55,8 @@
             "isAndroidBackgroundLocationEnabled": true
           }
         ],
-        "expo-dev-client"
+        "expo-dev-client",
+        "react-native-razorpay"
       ],
       "extra": {
         "eas": {
@@ -65,6 +68,9 @@
       "eas": {
         "projectId": "cb3bde16-7906-41ce-a99a-e15400c4a587"
       }
-    }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

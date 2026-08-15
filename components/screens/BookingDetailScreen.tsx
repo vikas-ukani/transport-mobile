@@ -1,24 +1,23 @@
 import { toast } from "@backpackapp-io/react-native-toast";
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Linking,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    Linking,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import apiService from "../../services/api.service";
-import socketService from "../../services/socket";
+import ConfirmPopup from "../common/ConfirmPopup";
 import VehicleLiveLocationModal from "../common/VehicleLiveLocationModal";
 
 // Small helper for formatting currency (assumes value is in cents)
@@ -27,19 +26,12 @@ function formatINR(minor?: number): string {
   return "₹" + minor.toLocaleString("en-IN", { minimumFractionDigits: 2 });
 }
 
-// Fallback/placeholder for driver photo
-const DEFAULT_PHOTO =
-  "https://ui-avatars.com/api/?name=Driver&background=random&size=128";
-
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const { user, updateUser } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [paying, setPaying] = useState(false);
-  const [accepting, setAccepting] = useState<string | null>(null);
-  const [booking, setBooking] = useState<any>(null);
+  const { user } = useAuth();
+  const [acceptBidId, setAcceptBidId] = useState<string | null>(null);
+  const [isAccepting, setIsAccepting] = useState<boolean>(false);
   const [liveLocation, setLiveLocation] = useState<any>({
     show: false,
   });
@@ -47,34 +39,72 @@ export default function BookingDetailScreen() {
   const mapRef = useRef<MapView>(null);
   const [mapReady, setMapReady] = useState(false);
 
+  // Double confirmation state for close booking
+  const [isCancelConfirm, setIsCancelConfirm] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+  // Improved: Use React Query useQuery to fetch booking by id - better error handling, clearer state, and data shape for future-friendly "Priya" UI refresh
+
+  // Booking query with error and status refactoring
+  const {
+    data,
+    isLoading: loading,
+    refetch: refetchBooking,
+  } = useQuery({
+    queryKey: ["booking-detail", id],
+    enabled: !!id,
+    queryFn: async () => {
+      if (!id)
+        throw new Error(t("bidding.loadFailed", "Failed to load booking."));
+      const res = await apiService.getBookingById(id);
+      if (res?.success && res.booking) return res.booking;
+      throw new Error(
+        res?.message || t("bidding.loadFailed", "Failed to load booking."),
+      );
+    },
+    // Always refetch every open/close
+    // Disable all cache, always get fresh data from DB
+    refetchOnMount: "always",
+    staleTime: 1000 * 60 * 2, // 2m cache    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
+  // Consistent variable for current booking for Priya UI/logic upgrade
+  const bookingData = data ?? null;
+
+  useEffect(() => {
+    refetchBooking();
+  }, []);
+
+  // Replace every usage of `booking` with `bookingData`
   const pickupCoordinate = useMemo(() => {
     if (
-      booking?.fromLatitude != null &&
-      booking?.fromLongitude != null &&
-      !isNaN(Number(booking.fromLatitude)) &&
-      !isNaN(Number(booking.fromLongitude))
+      bookingData?.fromLatitude != null &&
+      bookingData?.fromLongitude != null &&
+      !isNaN(Number(bookingData.fromLatitude)) &&
+      !isNaN(Number(bookingData.fromLongitude))
     ) {
       return {
-        latitude: Number(booking.fromLatitude),
-        longitude: Number(booking.fromLongitude),
+        latitude: Number(bookingData.fromLatitude),
+        longitude: Number(bookingData.fromLongitude),
       };
     }
     return null;
-  }, [booking?.fromLatitude, booking?.fromLongitude]);
+  }, [bookingData?.fromLatitude, bookingData?.fromLongitude]);
   const dropoffCoordinate = useMemo(() => {
     if (
-      booking?.toLatitude != null &&
-      booking?.toLongitude != null &&
-      !isNaN(Number(booking.toLatitude)) &&
-      !isNaN(Number(booking.toLongitude))
+      bookingData?.toLatitude != null &&
+      bookingData?.toLongitude != null &&
+      !isNaN(Number(bookingData.toLatitude)) &&
+      !isNaN(Number(bookingData.toLongitude))
     ) {
       return {
-        latitude: Number(booking.toLatitude),
-        longitude: Number(booking.toLongitude),
+        latitude: Number(bookingData.toLatitude),
+        longitude: Number(bookingData.toLongitude),
       };
     }
     return null;
-  }, [booking?.toLatitude, booking?.toLongitude]);
+  }, [bookingData?.toLatitude, bookingData?.toLongitude]);
   // NEW: Collect all valid marker coordinates for fitToCoordinates
   const markerCoords = useMemo(() => {
     const coords = [];
@@ -105,7 +135,7 @@ export default function BookingDetailScreen() {
     try {
       const data = await apiService.regenerateBookingOtp(id);
       if (data.success) {
-        await loadBooking();
+        await refetchBooking();
         toast.success(data.message || "OTP generated");
       }
     } catch (err: any) {
@@ -114,74 +144,24 @@ export default function BookingDetailScreen() {
     }
   };
 
-  const loadBooking = useCallback(async () => {
-    if (!id) {
-      setLoading(false);
-      toast.error(t("bidding.loadFailed"));
-      router.back();
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await apiService.getBookingById(id);
-      console.log("res", res.booking);
-      if (res && res.success && res.booking) {
-        setBooking(res.booking);
-      } else {
-        toast.error(res?.message || t("bidding.loadFailed"));
-        // router.back();
-      }
-    } catch (err: any) {
-      console.log("err?.message", err?.message);
-      toast.error(err?.message || t("bidding.loadFailed"));
-      // router.back();
-    } finally {
-      setLoading(false);
-      console.log("data finally");
-    }
-  }, [id, t]); // dependencies used inside loadBooking
-
-  useEffect(() => {
-    if (!id) return;
-    socketService.connect();
-    socketService.emit("booking:subscribe", id);
-    const refresh = () => loadBooking();
-    socketService.on("booking:bid", refresh);
-    socketService.on("booking:bid_accepted", refresh);
-    socketService.on("booking:payment", refresh);
-    refresh();
-    return () => {
-      socketService.emit("booking:unsubscribe", id);
-      socketService.off("booking:bid", refresh);
-      socketService.off("booking:bid_accepted", refresh);
-      socketService.off("booking:payment", refresh);
-    };
-  }, [id]);
-
   const onAccept = async (bidId: string) => {
     if (!id) return;
-    Alert.alert(t("bidding.acceptTitle"), t("bidding.acceptConfirm"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("bidding.accept"),
-        onPress: async () => {
-          setAccepting(bidId);
-          try {
-            const res = await apiService.acceptBookingBid(id, bidId);
-            if (res?.success) {
-              toast.success(res.message || t("bidding.accepted"));
-              setBooking(res.booking);
-            } else {
-              toast.error(res?.message || t("bidding.acceptFailed"));
-            }
-          } catch (e: any) {
-            toast.error(e?.message || t("bidding.acceptFailed"));
-          } finally {
-            setAccepting(null);
-          }
-        },
-      },
-    ]);
+    setIsAccepting(true);
+    toast.dismiss();
+    try {
+      const res = await apiService.acceptBookingBid(id, bidId);
+      if (res?.success) {
+        toast.success(res.message || t("bidding.accepted"));
+        await refetchBooking();
+      } else {
+        toast.error(res?.message || t("bidding.acceptFailed"));
+      }
+    } catch (e: any) {
+      toast.error(e?.message || t("bidding.acceptFailed"));
+    } finally {
+      setIsAccepting(false);
+      setAcceptBidId(null);
+    }
   };
 
   // if (loading || !booking) {
@@ -192,24 +172,24 @@ export default function BookingDetailScreen() {
   //   );
   // }
 
-  const isCustomer = user?.id === booking?.customerId;
+  const isCustomer = user?.id === bookingData?.customerId;
 
   // Sort bids by createdAt descending (latest first)
   const sortedBids =
-    booking?.bids
-      ?.slice()
-      .sort(
-        (a: any, b: any) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      ) ?? [];
+    bookingData?.bids?.slice().sort(
+      (a: any, b: any) => (a.amount ?? 0) - (b.amount ?? 0),
+      // .sort(
+      //   (a: any, b: any) =>
+      //     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    ) ?? [];
 
   // Show detail block for the booking itself
   const detailBlock = (
-    <View className="p-2 mb-4">
+    <View className="p-2 mb-2">
       {pickupCoordinate && dropoffCoordinate && (
         <View
           className="overflow-hidden rounded-xl border-2 border-primary"
-          style={{ height: 250 }}
+          style={{ height: 380 }}
         >
           <MapView
             style={{ flex: 1, minHeight: 220, minWidth: "100%" }}
@@ -221,40 +201,50 @@ export default function BookingDetailScreen() {
             showsPointsOfInterest={false}
             showsBuildings={false}
             showsIndoors={false}
-            showsMyLocationButton={false}
+            showsMyLocationButton={true}
             onMapReady={() => setMapReady(true)}
-            // Remove initialRegion (so fitToCoordinates works consistently)
-            // Instead, even on first render, fit to all markers programmatically
+            zoomControlEnabled={true}
+            showsUserLocation={true}
+            userLocationCalloutEnabled
           >
             {/* Show PICKUP marker */}
             <Marker
               coordinate={pickupCoordinate}
               title={t("booking.pickup", "Pickup Location")}
-              description={booking.fromAddress}
+              description={bookingData?.fromAddress}
             >
-              <FontAwesome5 name="map-marker" size={22} color="#4F46E5" />
+              <FontAwesome5
+                name="map-marker"
+                size={22}
+                className="!text-pickPin"
+              />
             </Marker>
             {/* Show DROPOFF marker */}
             <Marker
               coordinate={dropoffCoordinate}
               title={t("booking.dropoff", "Drop Location")}
-              description={booking.toAddress}
+              description={bookingData?.toAddress}
             >
-              <FontAwesome5 name="map-marker" size={22} color="#6366F1" />
+              <MaterialIcons
+                name="pin-drop"
+                size={30}
+                className="!text-dropPin"
+              />
+              {/* <FontAwesome5 name="map-marker" size={22} color="#6366F1" /> */}
             </Marker>
           </MapView>
 
-          <View className="absolute right-4 bottom-4 z-50">
+          <View className="absolute bottom-4 z-50 px-4 text-center">
             <TouchableOpacity
               onPress={() => {
-                const fromLat = booking.fromLatitude;
-                const fromLng = booking.fromLongitude;
-                const toLat = booking.toLatitude;
-                const toLng = booking.toLongitude;
+                const fromLat = bookingData?.fromLatitude;
+                const fromLng = bookingData?.fromLongitude;
+                const toLat = bookingData?.toLatitude;
+                const toLng = bookingData?.toLongitude;
                 let url = `https://www.google.com/maps/dir/?api=1&origin=${fromLat},${fromLng}&destination=${toLat},${toLng}&travelmode=driving`;
                 Linking.openURL(url);
               }}
-              className="bg-primary rounded-3xl px-[20px] py-[8px] flex-row items-center shadow"
+              className="flex-row justify-center items-center py-4 w-full h-full text-center rounded-xl shadow bg-primary"
               style={{
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 2 },
@@ -266,7 +256,7 @@ export default function BookingDetailScreen() {
             >
               <FontAwesome5
                 name="directions"
-                size={18}
+                size={20}
                 color="#ffffff"
                 style={{ marginRight: 8 }}
               />
@@ -283,503 +273,613 @@ export default function BookingDetailScreen() {
           </View>
         </View>
       )}
-      <View className="flex-col gap-2 items-center my-2 mt-4">
-        <View className="flex-row gap-4 items-start">
-          <FontAwesome5 name="map-marker" size={22} color="#4F46E5" />
-          <Text className="flex-shrink text-base font-semibold text-primary">
-            {booking?.fromAddress || "-"}
-          </Text>
+
+      {/* Address Journey Block */}
+      <View className="flex flex-col gap-4 items-center px-2 mt-6 mb-4 w-full">
+        <View className="flex flex-row gap-3 items-center w-full max-w-md">
+          <View className="flex flex-row flex-1 items-center">
+            {/* Match from pin color to map: #ef4444 */}
+            <FontAwesome5
+              name="map-marker-alt"
+              size={22}
+              className="!text-pickPin"
+            />
+            <Text
+              className="flex-1 ml-3 text-lg font-bold text-primary"
+              numberOfLines={2}
+            >
+              {bookingData?.fromAddress || "-"}
+            </Text>
+          </View>
         </View>
-        <Ionicons
-          name="arrow-down"
-          size={18}
-          color="#6B7280"
-          className="mx-2"
-        />
-        <View className="flex-row gap-4 items-start">
-          <FontAwesome5 name="map-marker" size={22} color="#6366F1" />
-          <Text className="flex-shrink text-base font-semibold text-gray-800">
-            {booking?.toAddress || "-"}
-          </Text>
+
+        <View className="flex flex-row gap-3 items-center w-full max-w-md">
+          <View className="flex flex-row flex-1 items-center">
+            {/* Match to pin color to map: #6366F1 */}
+            <FontAwesome5
+              name="map-marker-alt"
+              size={22}
+              className="!text-dropPin"
+            />
+            <Text
+              className="flex-1 ml-3 text-lg font-bold text-gray-800"
+              numberOfLines={2}
+            >
+              {bookingData?.toAddress || "-"}
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Date/time block at top for better readability */}
-      <View className="flex-row items-center my-2">
-        <Ionicons
-          name="calendar-outline"
-          size={20}
-          color="#7c3aed"
-          className="mr-1"
-        />
-        <Text className="text-sm font-medium text-gray-600">
-          {t("booking.date", "Date")}:{" "}
+      {/* Date/Time Block */}
+      <View className="flex-row gap-2 py-2 mx-3 mb-3">
+        <Ionicons name="calendar-outline" size={20} className="text-primary" />
+        <Text className="text-base font-medium">
+          {t("booking.date", "Date")}:
         </Text>
-        <Text className="text-sm font-semibold text-gray-800">
-          {booking?.bookingDate
-            ? new Date(booking.bookingDate).toLocaleString()
+        <Text className="text-base font-bold text-primary">
+          {bookingData?.bookingDate
+            ? new Date(bookingData.bookingDate).toLocaleString()
             : "-"}
         </Text>
       </View>
 
-      <View className="flex-row flex-wrap items-center px-2 py-2 mt-2 rounded-lg">
+      {/* Stats Card Grid */}
+      <View className="flex flex-row flex-wrap rounded-xl">
         {/* Status */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
           <Ionicons
             name={
-              booking?.status === "COMPLETED"
+              bookingData?.status === "COMPLETED"
                 ? "checkmark-circle"
-                : booking?.status === "CANCELLED"
+                : bookingData?.status === "CANCELED"
                   ? "close-circle"
-                  : booking?.status === "PENDING"
+                  : bookingData?.status === "PENDING" ||
+                      bookingData?.status === "ACTIVE"
                     ? "time"
                     : "ellipse"
             }
-            size={18}
-            color={
-              booking?.status === "COMPLETED"
-                ? "#22c55e"
-                : booking?.status === "CANCELLED"
-                  ? "#ef4444"
-                  : booking?.status === "PENDING"
-                    ? "#fbbf24"
-                    : "#64748b"
+            size={20}
+            className={
+              bookingData?.status === "COMPLETED"
+                ? "!text-green-500"
+                : bookingData?.status === "CANCELED"
+                  ? "!text-red-400"
+                  : bookingData?.status === "PENDING" ||
+                      bookingData?.status === "ACTIVE"
+                    ? "!text-yellow-500"
+                    : "!text-slate-400"
             }
-            style={{ marginRight: 4 }}
           />
-          <Text className="text-sm font-semibold text-gray-900">
-            {t("booking.status", "Status")}:{" "}
-            {booking?.status
-              ? String(
-                  t(`booking.status_${booking?.status}`, {
-                    status: booking.status,
-                    defaultValue:
-                      booking.status.charAt(0).toUpperCase() +
-                      booking.status.slice(1),
-                  }),
-                )
+          <Text className="text-base font-semibold text-gray-600">
+            {t("booking.status", "Status")}:
+          </Text>
+          <Text className="text-base font-bold text-gray-800 uppercase">
+            {bookingData?.status
+              ? t(`booking.status_${bookingData?.status}`, {
+                  status: bookingData.status,
+                  defaultValue:
+                    bookingData.status.charAt(0).toUpperCase() +
+                    bookingData.status.slice(1),
+                })
               : "-"}
           </Text>
         </View>
         {/* Payment */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
           <Ionicons
             name={
-              booking?.paymentStatus === "paid"
+              bookingData?.paymentStatus === "paid"
                 ? "wallet"
-                : booking?.paymentStatus === "pending"
+                : bookingData?.paymentStatus === "pending"
                   ? "card"
-                  : "alert"
+                  : "alert-circle"
             }
-            size={18}
-            color={
-              booking?.paymentStatus === "paid"
-                ? "#22c55e"
-                : booking?.paymentStatus === "pending"
-                  ? "#fbbf24"
-                  : "#ef4444"
+            size={20}
+            className={
+              bookingData?.paymentStatus === "paid"
+                ? "!text-green-500"
+                : bookingData?.paymentStatus === "pending"
+                  ? "!text-yellow-400"
+                  : "!text-red-400"
             }
-            style={{ marginRight: 4 }}
           />
-          <Text className="text-sm font-semibold text-gray-900">
-            {t("booking.payment", "Payment")}:{" "}
-            {booking?.paymentStatus
-              ? String(
-                  t(`booking.paymentStatus_${booking?.paymentStatus}`, {
-                    status: booking.paymentStatus,
-                    defaultValue:
-                      booking.paymentStatus.charAt(0).toUpperCase() +
-                      booking.paymentStatus.slice(1),
-                  }),
-                )
+          <Text className="text-base font-semibold text-gray-600">
+            {t("booking.payment", "Payment")}:
+          </Text>
+          <Text className="w-full text-base font-bold text-gray-800 uppercase">
+            {bookingData?.paymentStatus
+              ? t(`booking.paymentStatus_${bookingData?.paymentStatus}`, {
+                  status: bookingData.paymentStatus,
+                  defaultValue:
+                    bookingData.paymentStatus.charAt(0).toUpperCase() +
+                    bookingData.paymentStatus.slice(1),
+                })
               : "-"}
           </Text>
         </View>
         {/* Truck Type */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
-          <Ionicons
-            name="car-outline"
-            size={18}
-            color="#6366f1"
-            style={{ marginRight: 4 }}
-          />
-          <Text className="text-sm text-gray-600">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
+          <Ionicons name="car-outline" size={20} className="!text-indigo-500" />
+          <Text className="text-base font-semibold text-gray-600">
             {t("bidding.truckType", "Truck Type")}:
           </Text>
-          <Text className="text-sm font-semibold text-gray-900">
-            {booking?.truckType || "-"}
+          <Text className="w-full text-base font-bold text-gray-800 uppercase">
+            {bookingData?.truckType || "-"}
           </Text>
         </View>
         {/* Body Type */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
           <Ionicons
             name="cube-outline"
-            size={18}
-            color="#38bdf8"
-            style={{ marginRight: 4 }}
+            size={20}
+            className="!text-indigo-500"
           />
-          <Text className="text-sm text-gray-600">
+          <Text className="text-base font-semibold text-gray-600">
             {t("bidding.bodyType", "Body Type")}:
           </Text>
-          <Text className="text-sm font-semibold text-gray-900">
-            {booking?.bodyType || "-"}
+          <Text className="w-full text-base font-bold text-gray-800 uppercase">
+            {bookingData?.bodyType || "-"}
           </Text>
         </View>
         {/* Truck Length */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
           <Ionicons
             name="resize-outline"
-            size={18}
-            color="#7c3aed"
-            style={{ marginRight: 4 }}
+            size={20}
+            className="!text-indigo-500"
           />
-          <Text className="text-sm text-gray-600">
+          <Text className="text-base font-semibold text-gray-600">
             {t("bidding.truckLength", "Truck Length")}:
           </Text>
-          <Text className="text-sm font-semibold text-gray-900">
-            {booking?.truckLength || "-"}
+          <Text className="w-full text-base font-bold text-gray-800">
+            {bookingData?.truckLength ? `${bookingData.truckLength} ft` : "-"}
           </Text>
         </View>
         {/* Load Capacity */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
           <Ionicons
             name="barbell-outline"
-            size={18}
-            color="#f59e42"
-            style={{ marginRight: 4 }}
+            size={20}
+            className="!text-indigo-500"
           />
-          <Text className="text-sm text-gray-600">
+          <Text className="text-base font-semibold text-gray-600">
             {t("bidding.loadCapacity", "Load Capacity")}:
           </Text>
-          <Text className="text-sm font-semibold text-gray-900">
-            {booking?.loadCapacity || "-"}
+          <Text className="w-full text-base font-bold text-gray-800">
+            {bookingData?.loadCapacity
+              ? `${bookingData.loadCapacity} ton`
+              : "-"}
           </Text>
         </View>
         {/* Estimated KM */}
-        <View className="flex-row gap-1 items-center p-1 w-1/2">
+        <View className="flex flex-row gap-2 items-center py-2 w-1/2">
           <Ionicons
             name="speedometer-outline"
-            size={18}
-            color="#10b981"
-            style={{ marginRight: 4 }}
+            size={20}
+            className="!text-primary"
           />
-          <Text className="text-sm text-gray-600">
+          <Text className="text-base font-semibold text-gray-600">
             {t("bidding.estimatedKm", "Estimated Km")}:
           </Text>
-          <Text className="text-sm font-semibold text-gray-900">
-            {booking?.estimatedKm || "-"} km
+          <Text className="text-base font-bold text-gray-800">
+            {bookingData?.estimatedKm || "-"} km
           </Text>
         </View>
       </View>
 
-      {/* Improved and more prominent driver notes section */}
-      {booking?.driverNotes ? (
-        <View className="px-3 py-3 mt-4 bg-yellow-100 rounded-lg border-l-8 border-yellow-400 shadow-sm">
-          <View className="flex-row items-center mb-2">
+      {/* Driver Notes Section */}
+      {/* {bookingData?.driverNotes ? (
+        <View className="px-4 py-4 mb-4 bg-yellow-50/80 rounded-xl border-l-2 !border-yellow-300 shadow">
+          <View className="flex flex-row items-center mb-2">
             <Ionicons
               name="information-circle"
-              size={20}
-              color="#b45309"
-              className="mr-2"
+              size={22}
+              className="mr-2 !text-yellow-600"
             />
-            <Text className="text-base font-bold text-yellow-900">
+            <Text className="text-lg font-extrabold text-yellow-900">
               {t("bidding.driverNote", "Driver Note")}
             </Text>
           </View>
-          <Text className="text-sm italic leading-snug text-yellow-800">
-            {booking.driverNotes}
+          <Text className="text-base italic text-yellow-900">
+            {bookingData.driverNotes}
           </Text>
         </View>
-      ) : null}
-
-      <View className="pt-2 mt-2 border-t border-gray-100">
-        <Text className="text-xs text-gray-500">
-          {t("booking.date")}:{" "}
-          {booking?.bookingDate
-            ? new Date(booking?.bookingDate).toLocaleString()
-            : "-"}
-        </Text>
-      </View>
+      ) : null} */}
     </View>
   );
 
-  return (
-    <SafeAreaView className="flex-1 bg-screen" edges={["top"]}>
-      <View className="flex-row items-center px-4 py-2">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <Ionicons name="arrow-back" size={24} className="!text-primary" />
-        </TouchableOpacity>
-        <Text className="flex-1 text-2xl font-bold text-primary">
-          {t("bidding.bookingDetail")}
+  const bidSection = (
+    <View className="mb-4">
+      {/* List all bids, sorted by latest */}
+      {sortedBids.length === 0 ? (
+        <Text className="px-2 font-semibold text-primary">
+          {t("bidding.noBidsYet")}
         </Text>
-      </View>
+      ) : (
+        <View className="mb-28">
+          <Text className="mb-2 text-xl font-bold text-primary">
+            {t("booking.latestBids")}
+          </Text>
+          {sortedBids.map((bid: any) => (
+            <View key={bid.id} className="flex-col gap-1 justify-start">
+              <View
+                className={`p-4 mb-3 rounded-xl border ${
+                  bid.status === "ACCEPTED"
+                    ? "bg-green-50 border-primary"
+                    : "bg-white border-gray-100"
+                }  `}
+              >
+                <View className="flex-row gap-1 justify-between">
+                  <View className="flex-row gap-1 items-center">
+                    <View className="w-[34px] h-[34px] border !border-primary rounded-full bg-screen justify-center items-center ">
+                      <Text className="text-lg font-bold text-primary">
+                        {bid?.driver.name?.[0]?.toUpperCase() || "U"}
+                      </Text>
+                    </View>
+                    <View className="flex-col !items-start gap-1 ml-2">
+                      <Text className="font-bold text-gray-900">
+                        {bid?.driver?.name ? (
+                          bid?.driver.name
+                        ) : (
+                          <Text className="italic text-gray-500">
+                            {t("booking.unknownUser")}
+                          </Text>
+                        )}
+                      </Text>
+                      {/* {bid?.driver?.mobile && (
+                        <View className="flex-row items-center">
+                          <Text className="ml-1 text-xs text-gray-700">
+                            {bid?.vehicle?.mobile || bid?.driver?.mobile}
+                          </Text>
+                        </View>
+                      )} */}
 
-      <ScrollView
-        className="flex-1 px-4"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={loadBooking} />
-        }
-      >
-        {detailBlock}
+                      <View className="flex-row items-center">
+                        <Ionicons name="star" size={10} color="#fbbf24" />
+                        <Text className="ml-1 text-xs text-gray-700">
+                          {(bid?.driver?.rating ?? 0).toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
 
-        <View className="mb-6">
-          {/* List all bids, sorted by latest */}
-          {sortedBids.length === 0 ? (
-            <Text className="px-2 font-semibold text-primary">
-              {t("bidding.noBidsYet")}
-            </Text>
-          ) : (
-            <View className="mb-28">
-              <Text className="mb-2 text-base font-bold text-primary">
-                {t("booking.latestBids")}
-              </Text>
-              {sortedBids.map((bid: any) => (
-                <View key={bid.id} className="flex-col gap-1 justify-start">
-                  <View
-                    className={`p-4 mb-3 rounded-xl border ${
-                      bid.status === "ACCEPTED"
-                        ? "bg-green-50 border-primary"
-                        : "bg-white border-gray-100"
-                    }  `}
-                  >
-                    <View className="flex-row gap-1 justify-between">
-                      <View className="flex-row gap-1 items-center">
-                        <View className="w-[34px] h-[34px] rounded-full bg-screen justify-center items-center ">
-                          {bid?.driver?.photo ? (
-                            <View className="w-[34px] h-[34px] rounded-full overflow-hidden">
-                              <Image
-                                source={{
-                                  uri: bid?.driver?.photo || DEFAULT_PHOTO,
-                                }}
-                                className="w-8 h-8 bg-gray-200 rounded-full"
-                                resizeMode="cover"
-                              />
-                            </View>
-                          ) : (
-                            <Text className="text-lg font-bold text-primary">
-                              {bid?.driver.name?.[0]?.toUpperCase() || "U"}
+                  <View className="items-end ml-auto">
+                    <View className="flex-1 gap-2 items-center w-full">
+                      <Text className="mt-2 text-lg font-bold text-primary">
+                        {formatINR(bid.amount)}
+                      </Text>
+                      {bid.status === "ACCEPTED" && (
+                        <View className="flex-row items-center">
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={16}
+                            className="!text-primary"
+                          />
+                          <Text className="ml-1 text-xs font-medium text-green-600">
+                            {t("bidding.accepted")}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  {/* Only show accept if customer, bid is pending, booking is open */}
+                  {isCustomer &&
+                    bookingData?.biddingOpen &&
+                    bid.status === "PENDING" && (
+                      <TouchableOpacity
+                        className="justify-center items-center self-center px-3 py-2 ml-4 rounded-lg bg-primary"
+                        onPress={() => setAcceptBidId(bid.id)}
+                        // onPress={() => onAccept(bid.id)}
+                        disabled={!!acceptBidId}
+                      >
+                        <Text className="text-sm font-semibold text-white">
+                          {t("bidding.accept")}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                </View>
+                {bid.status === "ACCEPTED" && (
+                  <View>
+                    {/* <Text className="text-xs text-primary">
+                      {t("bidding.vehicleInfo", "Vehicle Information")}
+                    </Text> */}
+                    <View className="flex-row gap-1 justify-between items-center p-1 mt-2 rounded-lg">
+                      {bid.vehicle ? (
+                        <View className="flex-row w-full">
+                          <View className="flex-1 gap-1 items-start w-1/4">
+                            <Text className="text-xs text-gray-600">
+                              {t("bidding.vehicleDriverName", "Driver Name")}
                             </Text>
+                            <Text className="text-xs font-semibold text-gray-700">
+                              {bid.vehicle.driverName || "-"}
+                            </Text>
+                          </View>
+                          <View className="flex-1 gap-1 items-start w-1/4">
+                            <Text className="text-xs text-gray-600">
+                              {t("bidding.vehicleRcNumber", "Vehicle No.")}
+                            </Text>
+                            <Text className="text-xs font-semibold text-gray-700">
+                              {bid.vehicle.rcNumber || "-"}
+                            </Text>
+                          </View>
+                          {/* <View className="flex-1 gap-1 items-start w-1/4">
+                            <Text className="text-xs text-gray-600">
+                              {t("bidding.vehicleNumber", "Vehicle No.")}
+                            </Text>
+                            <Text className="text-xs font-semibold text-gray-700">
+                              {bid.vehicle.vehicleNumber || "-"}
+                            </Text>
+                          </View> */}
+                          {bookingData?.paymentId && (
+                            <View className="flex-1 gap-1 items-start w-1/4">
+                              <Text className="text-xs text-gray-600">
+                                {t("bidding.vehicleMobile", "Driver Mobile")}
+                              </Text>
+                              <Text className="text-xs font-semibold text-gray-700">
+                                {bid.vehicle.mobileNumber || "-"}
+                              </Text>
+                            </View>
                           )}
                         </View>
-                        <View className="flex-col !items-start gap-1 ml-2">
-                          <Text className="font-bold text-gray-900">
-                            {bid?.driver?.name ? (
-                              bid?.driver.name
-                            ) : (
-                              <Text className="italic text-gray-500">
-                                {t("booking.unknownUser")}
-                              </Text>
+                      ) : (
+                        <Text className="flex-1 text-xs text-gray-400">
+                          {t("bidding.noVehicleInfo") ||
+                            "No vehicle information"}
+                        </Text>
+                      )}
+                    </View>
+                    <View className="mt-2">
+                      {liveLocation.show && (
+                        <VehicleLiveLocationModal
+                          show={liveLocation.show}
+                          onHide={() =>
+                            setLiveLocation({
+                              show: false,
+                              latitude: liveLocation.latitude || 0,
+                              longitude: liveLocation.longitude || 0,
+                            })
+                          }
+                          latitude={liveLocation.latitude || 0}
+                          longitude={liveLocation.longitude || 0}
+                        />
+                      )}
+                      {bookingData.status !== "COMPLETED" && (
+                        <TouchableOpacity
+                          className="flex-row justify-center items-center px-4 py-2 rounded-lg bg-primary"
+                          onPress={() => {
+                            setLiveLocation({
+                              show: true,
+                              latitude: bid?.driver?.latitude || 0,
+                              longitude: bid?.driver?.longitude || 0,
+                            });
+                          }}
+                        >
+                          <Text className="font-semibold text-white">
+                            {t(
+                              "bidding.trackVehicle",
+                              "Track Driver Live Location",
                             )}
                           </Text>
-                          {bid?.driver?.mobile && (
-                            <View className="flex-row items-center">
-                              <Text className="ml-1 text-xs text-gray-700">
-                                {bid?.vehicle?.mobile || bid?.driver?.mobile}
-                              </Text>
-                            </View>
-                          )}
-                          <View className="flex-row items-center">
-                            <Ionicons name="star" size={10} color="#fbbf24" />
-                            <Text className="ml-1 text-xs text-gray-700">
-                              {(bid?.driver?.rating ?? 0).toFixed(2)}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
+                        </TouchableOpacity>
+                      )}
 
-                      <View className="items-end ml-auto">
-                        <Text className="mt-4 text-lg font-bold text-primary">
-                          {formatINR(bid.amount)}
+                      <View className="flex-row justify-center items-center mt-2">
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          className={`${bookingData?.paymentId == null ? " !text-danger" : "!text-primary"} `}
+                        />
+                        <Text
+                          className={`ml-1 text-sm ${bookingData?.paymentId == null ? "!text-danger" : "text-primary"}`}
+                        >
+                          {bookingData.status === "COMPLETED"
+                            ? t(
+                                "bidding.rideHasBeenFinished",
+                                "Your ride is complete. The driver has finished the trip.",
+                              )
+                            : bookingData?.paymentId == null
+                              ? t(
+                                  "bidding.rideNotStartedYet",
+                                  "The driver has not started the ride yet.",
+                                )
+                              : t(
+                                  "bidding.driverOnTheWay",
+                                  "The driver is on the way.",
+                                )}
                         </Text>
-                        {bid.status === "ACCEPTED" && (
-                          <View className="flex-row items-center mt-1">
-                            <Ionicons
-                              name="checkmark-circle"
-                              size={16}
-                              color="#22c55e"
-                            />
-                            <Text className="ml-1 text-xs font-medium text-green-600">
-                              {t("bidding.accepted")}
-                            </Text>
-                          </View>
-                        )}
                       </View>
-                      {/* Only show accept if customer, bid is pending, booking is open */}
-                      {isCustomer &&
-                        booking.biddingOpen &&
-                        bid.status === "PENDING" && (
-                          <TouchableOpacity
-                            className="justify-center items-center self-center px-3 py-2 ml-4 rounded-lg bg-primary"
-                            onPress={() => onAccept(bid.id)}
-                            disabled={!!accepting}
-                          >
-                            {accepting === bid.id ? (
-                              <ActivityIndicator color="#fff" />
-                            ) : (
-                              <Text className="text-sm font-semibold text-white">
-                                {t("bidding.accept")}
-                              </Text>
-                            )}
-                          </TouchableOpacity>
-                        )}
                     </View>
-                    {bid.status === "ACCEPTED" && (
-                      <View>
-                        <View className="flex-row gap-1 justify-between items-center p-1 mt-2 rounded-lg">
-                          {/* <Text className="text-xs text-primary">
-                              {t("bidding.vehicleInfo", "Vehicle Information")}
-                            </Text> */}
-                          {bid.vehicle ? (
-                            <View className="flex-row gap-1 justify-between">
-                              <View className="flex-1 gap-1 items-start">
-                                <Text className="text-xs text-gray-600">
-                                  {t(
-                                    "bidding.vehicleDriverName",
-                                    "Driver Name",
-                                  )}
-                                </Text>
-                                <Text className="text-xs font-semibold text-gray-700">
-                                  {bid.vehicle.driverName || "-"}
-                                </Text>
-                              </View>
-                              <View className="flex-1 gap-1 items-start">
-                                <Text className="text-xs text-gray-600">
-                                  {t("bidding.vehicleRcNumber", "RC No.")}
-                                </Text>
-                                <Text className="text-xs font-semibold text-gray-700">
-                                  {bid.vehicle.rcNumber || "-"}
-                                </Text>
-                              </View>
-                              <View className="flex-1 gap-1 items-start">
-                                <Text className="text-xs text-gray-600">
-                                  {t("bidding.vehicleNumber", "Vehicle No.")}
-                                </Text>
-                                <Text className="text-xs font-semibold text-gray-700">
-                                  {bid.vehicle.vehicleNumber || "-"}
-                                </Text>
-                              </View>
-                              <View className="flex-1 gap-1 items-start">
-                                <Text className="text-xs text-gray-600">
-                                  {t("bidding.vehicleMobile", "Driver Mobile")}
-                                </Text>
-                                <Text className="text-xs font-semibold text-gray-700">
-                                  {bid.vehicle.mobileNumber || "-"}
-                                </Text>
-                              </View>
-                            </View>
-                          ) : (
-                            <Text className="flex-1 text-xs text-gray-400">
-                              {t("bidding.noVehicleInfo") ||
-                                "No vehicle information"}
-                            </Text>
-                          )}
-                        </View>
-                        <View className="mt-2">
-                          {liveLocation.show && (
-                            <VehicleLiveLocationModal
-                              show={liveLocation.show}
-                              onHide={() =>
-                                setLiveLocation({
-                                  show: false,
-                                  latitude: liveLocation.latitude || 0,
-                                  longitude: liveLocation.longitude || 0,
-                                })
-                              }
-                              latitude={liveLocation.latitude || 0}
-                              longitude={liveLocation.longitude || 0}
-                            />
-                          )}
-                          <TouchableOpacity
-                            className="flex-row justify-center items-center px-4 py-2 rounded-lg bg-primary"
-                            onPress={() => {
-                              setLiveLocation({
-                                show: true,
-                                latitude: bid?.driver?.latitude || 0,
-                                longitude: bid?.driver?.longitude || 0,
-                              });
-                            }}
-                          >
-                            <Text className="font-semibold text-white">
-                              {t(
-                                "bidding.trackVehicle",
-                                "Track Driver Live Location",
-                              )}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    )}
                   </View>
-                </View>
-              ))}
+                )}
+                {bid.status === "CANCELED" && (
+                  <View className="flex-row justify-end items-center mt-1">
+                    <Ionicons name="close-circle" size={16} color="#ef4444" />
+                    <Text className="ml-1 text-xs font-medium text-red-600">
+                      Driver has canceled this ride.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* OTP Modal */}
+    </View>
+  );
+
+  const onCloseBooking = async (id: string) => {
+    try {
+      setIsCancelConfirm(true);
+      toast.dismiss();
+      // Call the close booking API endpoint and handle the result
+      const response = await apiService.closeBooking(id);
+      if (response.success) {
+        toast.success(
+          t("booking.closeBookingSuccess", "Booking closed successfully."),
+        );
+        refetchBooking?.(); // Optionally refresh booking details if such method exists
+        // Redial to the main screen (booking list) after successful close
+        router.replace("/(apps)/bookings");
+      } else {
+        toast.error(
+          response.message ??
+            t("booking.closeBookingFailed", "Failed to close booking."),
+        );
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      toast.error(t("booking.closeBookingFailed", "Failed to close booking."));
+    } finally {
+      setIsCancelConfirm(false);
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-screen">
+      <ConfirmPopup
+        show={acceptBidId !== null}
+        loading={isAccepting}
+        onCancel={() => setAcceptBidId(null)}
+        onConfirm={() => acceptBidId && onAccept(acceptBidId)}
+        subTitle={t(
+          "booking.cancelRideSubTitle",
+          "Are you sure you want to confirm this driver and lock in the agreed price?",
+        )}
+        title={t("booking.acceptRide", "Confirm Ride?")}
+        confirmText={t("booking.accept", "Accept")}
+        cancelText={t("booking.cancel", "Cancel")}
+      />
+      {/* First confirmation for closing booking */}
+
+      {/* Second (final) confirmation for closing booking */}
+      <ConfirmPopup
+        loading={isCancelConfirm}
+        show={showCloseConfirm}
+        onCancel={() => setShowCloseConfirm(false)}
+        onConfirm={() => {
+          setShowCloseConfirm(false);
+          onCloseBooking(bookingData.id);
+        }}
+        subTitle={t(
+          "bidding.closeBookingConfirm2",
+          "Do you really want to close this booking?",
+        )}
+        title={t("bidding.closeBooking", "Close Booking")}
+        confirmText={t("bidding.closeBooking", "Close Booking")}
+        cancelText={t("common.cancel", "Cancel")}
+      />
+
+      <View className="flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-lg">
+        <TouchableOpacity
+          onPress={() => router.push("/(apps)/bookings")}
+          className="flex-row gap-4 justify-start items-center p-2 -ml-2"
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Text className="text-xl font-bold text-gray-900">
+            {t("common.bookingDetail")}
+          </Text>
+        </TouchableOpacity>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <View className="flex-1 bg-screen">
+        <ScrollView
+          className="flex-1 px-4"
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={refetchBooking} />
+          }
+        >
+          {detailBlock}
+
+          {bidSection}
+
+          {(!bookingData?.assignedDriverUserId ||
+            bookingData?.assignedDriverUserId === null) &&
+            bookingData?.status !== "CANCELED" && (
+              <View className="">
+                <TouchableOpacity
+                  className="flex-row justify-center items-center py-3 mb-2 w-full h-16 bg-red-600 rounded-lg"
+                  onPress={() => setShowCloseConfirm(true)}
+                  activeOpacity={0.85}
+                >
+                  <Text className="text-lg font-bold text-center text-white">
+                    {t("bidding.closeBooking", "Close Booking")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+        </ScrollView>
+
+        {/* Show 'Complete' and 'Pay' button fixed at the bottom using TailwindCSS */}
+        {bookingData?.assignedDriverUserId &&
+          bookingData.status !== "COMPLETED" && (
+            <View className="absolute left-0 right-0 bottom-0 p-4 z-[1000] bg-white/95  shadow-lg">
+              <TouchableOpacity
+                className="flex-row justify-center items-center py-3 mb-2 w-full h-16 rounded-lg bg-primary"
+                onPress={() => setShowOtpModal("complete")}
+                activeOpacity={0.85}
+              >
+                <Text className="text-lg font-bold text-center text-white">
+                  {t("bidding.completeBooking", "Finish Booking")}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
-          {/* OTP Modal */}
-        </View>
-      </ScrollView>
-
-      {/* Show 'Complete' and 'Pay' button fixed at the bottom using TailwindCSS */}
-      {booking?.assignedDriverUserId && (
-        <View className="absolute left-0 right-0 bottom-0 p-4 z-[1000] bg-white/95  shadow-lg">
-          <TouchableOpacity
-            className="flex-row justify-center items-center py-3 mb-2 w-full h-16 rounded-lg bg-primary"
-            onPress={() => setShowOtpModal("complete")}
-            activeOpacity={0.85}
-          >
-            <Text className="text-lg font-bold text-center text-white">
-              {t("bidding.completeBooking", "Complete & Pay Remaining Amount")}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {showOtpModal && (
-        <View className="absolute inset-0 !w-full z-[999] bg-black/45">
-          <View className="flex-1 justify-center items-center px-6 bg-black/60">
-            <View className="p-6 w-full max-w-sm bg-white rounded-xl shadow-xl">
-              <Text className="mb-4 text-lg font-semibold text-center">
-                {t("bidding.enterOtp", "OTP Code")}
-              </Text>
-
-              <View className="flex flex-col gap-2 justify-center items-center mb-4">
-                <Ionicons name="warning" size={30} className="!text-danger" />
-                <Text className="px-2 font-semibold leading-tight text-center text-md text-danger">
-                  {t(
-                    "bidding.remainingNote",
-                    "When you share this OTP code with the driver. Your remaining amount will be deducted from your wallet.",
-                  )}
+        {showOtpModal && (
+          <View className="absolute inset-0 !w-full z-[999] bg-black/45">
+            <View className="flex-1 justify-center items-center px-6 bg-black/60">
+              <View className="p-6 w-full max-w-sm bg-white rounded-xl shadow-xl">
+                <Text className="mb-4 text-lg font-semibold text-center">
+                  {t("bidding.enterOtp", "OTP Code")}
                 </Text>
-              </View>
 
-              {booking?.otpCode && (
-                <View className="px-3 py-2 mb-4 w-full bg-white rounded-lg border border-primary">
-                  <Text className="text-2xl font-bold tracking-widest text-center text-primary">
-                    {booking.otpCode}
+                <View className="flex flex-col gap-2 justify-center items-center mb-4">
+                  <Ionicons name="warning" size={30} className="!text-danger" />
+                  <Text className="px-2 w-full text-sm font-semibold leading-tight text-start text-danger">
+                    {t(
+                      "bidding.remainingNote",
+                      "Share this otp with driver to complete the booking.",
+                    )}
                   </Text>
                 </View>
-              )}
-              <TouchableOpacity
-                className="px-3 py-2 mb-4 w-full rounded-lg border bg-primary border-primary"
-                onPress={handleGenerateOtp}
-              >
-                <Text className="text-lg font-semibold text-center text-white">
-                  {t("bidding.generateOtp", "Generate OTP")}
-                </Text>
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                className="px-3 py-2 mb-4 w-full rounded-lg border-primary bg-screen"
-                onPress={() => setShowOtpModal(null)}
-              >
-                <Text className="text-lg font-semibold text-center text-black">
-                  {t("common.close", "Close")}
-                </Text>
-              </TouchableOpacity>
+                {bookingData?.otpCode && (
+                  <View className="px-3 py-2 mb-4 w-full bg-white rounded-lg border border-primary">
+                    <Text className="text-2xl font-bold tracking-widest text-center text-primary">
+                      {bookingData.otpCode}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  className="px-3 py-2 mb-4 w-full rounded-lg border bg-primary border-primary"
+                  onPress={handleGenerateOtp}
+                >
+                  <Text className="text-lg font-semibold text-center text-white">
+                    {t("bidding.generateOtp", "Generate OTP")}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="px-3 py-2 mb-4 w-full rounded-lg border-primary bg-screen"
+                  onPress={() => {
+                    setShowOtpModal(null);
+                    bookingData.otpCode && refetchBooking();
+                  }}
+                >
+                  <Text className="text-lg font-semibold text-center text-black">
+                    {t("common.close", "Close")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
     </SafeAreaView>
   );
 }

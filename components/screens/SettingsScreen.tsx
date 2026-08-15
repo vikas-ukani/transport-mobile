@@ -16,25 +16,7 @@ const SettingsScreen = () => {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [walletCents, setWalletCents] = useState<number | null>(null);
   const [payCurrency, setPayCurrency] = useState('inr');
-
-  const refreshWallet = useCallback(async () => {
-    try {
-      const r = await apiService.getWalletBalance();
-      if (r?.success) {
-        setWalletCents(r.walletBalanceCents);
-        setPayCurrency(r.currency || 'inr');
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshWallet();
-    }, [refreshWallet]),
-  );
-
+ 
 
   const changeLanguage = async (lang: string) => {
     // i18n.locale = 'en';
@@ -147,20 +129,7 @@ const SettingsScreen = () => {
               : '—'}
           </Text>
           <Text className='mb-3 text-xs text-gray-500'>{t('payment.topUp')}</Text>
-          <View className='flex-row flex-wrap gap-2'>
-            {[500, 1000, 2000].map((cents) => (
-              <TouchableOpacity
-                key={cents}
-                className='px-4 py-3 rounded-xl bg-primary'
-                // onPress={() => onTopUp(cents)}
-                activeOpacity={0.8}
-              >
-                <Text className='text-sm font-bold text-white'>
-                  + 0
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          
         </View>
 
         {/* Notification Settings */}
@@ -173,7 +142,6 @@ const SettingsScreen = () => {
               <Ionicons
                 name='notifications-outline'
                 size={22}
-                color='#3B82F6'
               />
               <Text className='ml-4 text-base font-semibold text-gray-900'>
                 {t('common.pushnotification')}

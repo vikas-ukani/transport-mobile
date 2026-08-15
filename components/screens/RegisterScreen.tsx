@@ -44,26 +44,57 @@ const RegisterScreen = () => {
 
   const getSchema = (userType: UserType) =>
     yup.object().shape({
-      name: yup.string().required("Name is required"),
-      email: yup.string().email("Invalid email").required("Email is required"),
+      name: yup
+        .string()
+        .required(t("register.errorNameRequired", "Name is required")),
+      email: yup
+        .string()
+        .email(t("register.errorEmailInvalid", "Invalid email"))
+        .required(t("register.errorEmailRequired", "Email is required")),
       mobile: yup
         .string()
-        .required("Mobile is required")
-        .min(10, "Mobile should be at least 10 digits.")
-        .max(10, "Mobile should be at least 10 digits."),
+        .required(t("register.errorMobileRequired", "Mobile is required"))
+        .min(
+          10,
+          t("register.errorMobileMin", "Mobile should be at least 10 digits."),
+        )
+        .max(
+          10,
+          t("register.errorMobileMax", "Mobile should be at least 10 digits."),
+        ),
       password: yup
         .string()
-        .required("Password is required")
-        .min(6, "Password must be at least 6 characters"),
+        .required(t("register.errorPasswordRequired", "Password is required"))
+        .min(
+          6,
+          t(
+            "register.errorPasswordMin",
+            "Password must be at least 6 characters",
+          ),
+        ),
       confirmPassword: yup
         .string()
-        .required("Please confirm your password")
-        .oneOf([yup.ref("password")], "Passwords do not match"),
+        .required(
+          t(
+            "register.errorConfirmPasswordRequired",
+            "Please confirm your password",
+          ),
+        )
+        .oneOf(
+          [yup.ref("password")],
+          t("register.errorPasswordsNoMatch", "Passwords do not match"),
+        ),
       type: yup
         .string()
-        .required("Select customer or driver type.")
+        .required(
+          t("register.errorTypeRequired", "Select customer or driver type."),
+        )
         .oneOf(["customer", "driver"]),
-      photo: yup.string().required("Please upload your profile photo."),
+      photo: yup
+        .string()
+        .required(
+          t("register.errorPhotoRequired", "Please upload your profile photo."),
+        ),
     });
 
   const {
@@ -89,7 +120,10 @@ const RegisterScreen = () => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) {
       toast.error(
-        "Permission Denied, Camera permission is required to take photos.",
+        t(
+          "register.cameraPermissionError",
+          "Permission Denied, Camera permission is required to take photos.",
+        ),
       );
       return;
     }
@@ -111,7 +145,7 @@ const RegisterScreen = () => {
         if (resPhoto) setValue("photo", resPhoto.filename);
       }
     } catch (e) {
-      toast.error("Failed to take photo");
+      toast.error(t("register.takePhotoError", "Failed to take photo"));
     }
   };
 
@@ -120,7 +154,12 @@ const RegisterScreen = () => {
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permissionResult.granted === false) {
-        toast.error("Permission to access the media library is required.");
+        toast.error(
+          t(
+            "register.mediaLibraryPermissionError",
+            "Permission to access the media library is required.",
+          ),
+        );
         return;
       }
 
@@ -142,7 +181,7 @@ const RegisterScreen = () => {
         }
       }
     } catch (e) {
-      toast.error("Failed to upload photo");
+      toast.error(t("register.uploadPhotoError", "Failed to upload photo"));
     }
   };
 
@@ -150,7 +189,7 @@ const RegisterScreen = () => {
     setLoadingOTP(true);
     const email = watch("email");
     if (!email) {
-      toast.error("Please enter email first");
+      toast.error(t("register.enterEmailFirst", "Please enter email first"));
       setLoadingOTP(false);
       return;
     }
@@ -163,7 +202,9 @@ const RegisterScreen = () => {
         toast.error(otpRes.message);
       }
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to send OTP");
+      toast.error(
+        e.message ?? t("register.sendOTPError", "Failed to send OTP"),
+      );
     } finally {
       setLoadingOTP(false);
     }
@@ -173,30 +214,30 @@ const RegisterScreen = () => {
     const email = watch("email");
     console.log("otp", newOtp);
     if (newOtp.length !== 6) {
-      toast.error("Please enter valid OTP");
+      toast.error(t("register.validOTPRequired", "Please enter valid OTP"));
       return;
     }
     try {
       const res = await apiService.verifyEmailOTP(email, newOtp);
       if (res.success) {
         setOtpVerified(true);
-        toast.success(t("register.otpVerified"));
+        toast.success(t("register.otpVerified", "OTP Verified"));
       } else {
-        toast.error(res.message || "Invalid OTP");
+        toast.error(res.message || t("register.invalidOtp", "Invalid OTP"));
       }
     } catch (error: any) {
       // Fallback for development - accept any 6 digit code
       if (otp.length === 6) {
         setOtpVerified(true);
       } else {
-        toast.error(error.message || "Invalid OTP");
+        toast.error(error.message || t("register.invalidOtp", "Invalid OTP"));
       }
     }
   };
 
   const onSubmit = async (data: any) => {
     if (!otpVerified) {
-      toast.error("Please verify OTP");
+      toast.error(t("register.verifyOtpFirst", "Please verify OTP"));
       return;
     }
 
@@ -216,7 +257,12 @@ const RegisterScreen = () => {
         data.password,
       );
     } catch (e) {
-      toast.error("Registration failed. Please try again.");
+      toast.error(
+        t(
+          "register.registrationFailed",
+          "Registration failed. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -231,18 +277,18 @@ const RegisterScreen = () => {
           activeOpacity={0.7}
         >
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          <Text className="mb-2 text-3xl font-bold text-gray-900">
-            {t("register.title")}
-          </Text>
         </TouchableOpacity>
 
-        <Text className="text-gray-600">{t("register.subtitle")}</Text>
-        <View className="flex-row items-center my-2">
-          <Text style={styles.signUpText}>{t("common.back_to")} </Text>
-          <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-            <Text style={styles.signUpLink}>{t("common.login")}</Text>
-          </TouchableOpacity>
+        <View className="flex flex-col justify-center items-center w-full">
+          <Text className="mb-2 text-3xl font-bold text-gray-900">
+            {t("register.title", "Register Your Profile")}
+          </Text>
+          <Text className="text-gray-600">
+            {t("register.subtitle", "Create a new account")}
+          </Text>
+          <View className="my-2 w-full h-px bg-primary" />
         </View>
+
         <KeyboardAwareScrollView
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1 }}
@@ -253,13 +299,13 @@ const RegisterScreen = () => {
         >
           <View className="mt-4 mb-4">
             <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t("register.userType")}
+              {t("register.userType", "User Type")}
             </Text>
             <View className="flex-row gap-4">
               <TouchableOpacity
                 className={`flex-1 py-3 rounded-lg border-2 ${
                   userType === "customer"
-                    ? "border-purple-600 bg-purple-50"
+                    ? "border-primary bg-screen"
                     : "border-gray-500"
                 }`}
                 onPress={() => {
@@ -270,17 +316,17 @@ const RegisterScreen = () => {
                 <Text
                   className={`text-center   ${
                     userType === "customer"
-                      ? "text-purple-600 font-semibold"
+                      ? "text-primary font-semibold"
                       : "text-gray-600 font-normal"
                   }`}
                 >
-                  {t("register.customer")}
+                  {t("register.customer", "Customer")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className={`flex-1 py-3 rounded-lg border-2 ${
                   userType === "driver"
-                    ? "border-purple-600 bg-purple-50"
+                    ? "border-primary bg-screen"
                     : "border-gray-500"
                 }`}
                 onPress={() => {
@@ -291,38 +337,38 @@ const RegisterScreen = () => {
                 <Text
                   className={`text-center ${
                     userType === "driver"
-                      ? "text-purple-600 font-semibold"
+                      ? "text-primary font-semibold"
                       : "text-gray-600 font-normal"
                   }`}
                 >
-                  {t("register.driver")}
+                  {t("register.driver", "Driver")}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           <CustomInput
-            label={t("common.name")}
+            label={t("common.name", "Name")}
             name="name"
             control={control}
             errors={errors}
-            placeholder={t("common.name")}
+            placeholder={t("common.name", "Name")}
             autoCapitalize="words"
             frontIcon="person-outline"
           />
           <CustomInput
-            label={t("common.email")}
+            label={t("common.email", "Email")}
             name="email"
             control={control}
             errors={errors}
-            placeholder={t("common.email")}
+            placeholder={t("common.email", "Email")}
             autoCapitalize="none"
             frontIcon="at"
           />
 
           {otpVerified ? (
             <Text className="mb-2 text-green-600 text-start">
-              ✓ {t("register.otpVerified")}
+              ✓ {t("register.otpVerified", "OTP Verified")}
             </Text>
           ) : (
             <View className="flex-row gap-2 justify-start items-start mt-2 mb-4 w-full">
@@ -365,18 +411,13 @@ const RegisterScreen = () => {
                             inputRefs.current[idx + 1]?.focus();
                           }
 
-                          if (
-                            newOtp.length === 6
-                            // newOtp.length === 6 &&
-                            // !newOtp.includes("") &&
-                            // newOtp.match(/^\d{6}$/)
-                          ) {
+                          if (newOtp.length === 6) {
                             verifyOTP(newOtp);
                           }
                         }}
                         maxLength={1}
                         keyboardType="number-pad"
-                        placeholder="*"
+                        placeholder={t("register.otpAsterisk", "*")}
                         ref={(ref) => {
                           inputRefs.current[idx] = ref as any;
                         }}
@@ -400,27 +441,17 @@ const RegisterScreen = () => {
                       />
                     ))}
                   </View>
-                  {/* <View className="flex-row gap-2 items-center w-full">
-                    <TouchableOpacity
-                      className="py-5 w-1/3 bg-purple-600 rounded-lg h-fit"
-                      onPress={verifyOTP}
-                    >
-                      <Text className="font-semibold text-center text-white">
-                        {t("register.verify")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View> */}
                 </View>
               ) : (
                 <TouchableOpacity
-                  className="py-5 w-1/3 bg-purple-600 rounded-lg h-fit"
+                  className="py-5 w-1/3 rounded-lg bg-primary h-fit"
                   onPress={!otpSent ? sendOTP : undefined}
                   disabled={loadingOTP}
                 >
                   <Text className="font-semibold text-center text-white">
                     {loadingOTP && watch("email")
-                      ? t("register.otpSending")
-                      : t("register.otpVerification")}
+                      ? t("register.otpSending", "Sending OTP...")
+                      : t("register.otpVerification", "Verify Email")}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -428,11 +459,11 @@ const RegisterScreen = () => {
           )}
 
           <CustomInput
-            label={t("common.mobile")}
+            label={t("common.mobile", "Mobile")}
             name="mobile"
             control={control}
             errors={errors}
-            placeholder={t("common.mobile")}
+            placeholder={t("common.mobile", "Mobile")}
             autoCapitalize="none"
             keyboardType="phone-pad"
             maxLength={10}
@@ -440,11 +471,11 @@ const RegisterScreen = () => {
           />
 
           <CustomInput
-            label={t("common.password")}
+            label={t("common.password", "Password")}
             name="password"
             control={control}
             errors={errors}
-            placeholder={t("common.password")}
+            placeholder={t("common.password", "Password")}
             maxLength={10}
             frontIcon="lock-closed-outline"
             backIcon={showPassword ? "eye-outline" : "eye-off-outline"}
@@ -453,11 +484,11 @@ const RegisterScreen = () => {
           />
 
           <CustomInput
-            label={t("common.confirmPassword")}
+            label={t("common.confirmPassword", "Confirm Password")}
             name="confirmPassword"
             control={control}
             errors={errors}
-            placeholder={t("common.confirmPassword")}
+            placeholder={t("common.confirmPassword", "Confirm Password")}
             maxLength={10}
             frontIcon="lock-closed-outline"
             backIcon={showPassword ? "eye-outline" : "eye-off-outline"}
@@ -467,26 +498,34 @@ const RegisterScreen = () => {
 
           <View className="mb-4">
             <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t("common.profilePhoto")}
+              {t("common.profilePhoto", "Profile Photo")}
             </Text>
 
-            <View className="flex-row gap-2 justify-evenly w-11/12">
+            <View className="flex-row gap-6 justify-evenly w-11/12">
               <TouchableOpacity
-                className="flex-row gap-2 justify-center items-center p-3 w-1/2 bg-gray-100 rounded-lg border border-gray-300"
+                className="flex-row gap-2 justify-center items-center p-3 w-6/12 rounded-lg border-2 border-primary bg-screen"
                 onPress={takePhoto}
               >
-                <Ionicons name="camera-outline" size={20} />
-                <Text className="text-center text-gray-700">
-                  {t("register.takePhoto")}
+                <Ionicons
+                  name="camera-outline"
+                  className="!text-primary"
+                  size={20}
+                />
+                <Text className="text-center text-primary">
+                  {t("register.takePhoto", "Take Photo")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center bg-gray-100 rounded-lg border border-gray-300"
+                className="flex-row gap-2 justify-center items-center p-3 w-6/12 text-center rounded-lg border-2 bg-screen border-primary"
                 onPress={selectPhoto}
               >
-                <Ionicons name="image-outline" size={20} />
-                <Text className="text-center text-gray-700">
-                  {t("register.selectPhoto")}
+                <Ionicons
+                  name="image-outline"
+                  size={20}
+                  className="!text-primary"
+                />
+                <Text className="text-center text-primary">
+                  {t("register.selectPhoto", "Select Photo")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -504,7 +543,7 @@ const RegisterScreen = () => {
           </View>
 
           <TouchableOpacity
-            className="flex-row justify-center items-center py-4 mt-4 bg-purple-600 rounded-lg"
+            className="flex-row justify-center items-center py-4 mt-4 rounded-lg bg-primary"
             onPress={handleSubmit(onSubmit)}
             disabled={loading}
           >
@@ -512,7 +551,7 @@ const RegisterScreen = () => {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text className="text-lg font-semibold text-center text-white">
-                {t("common.register")}
+                {t("common.register", "Register")}
               </Text>
             )}
           </TouchableOpacity>
@@ -520,15 +559,19 @@ const RegisterScreen = () => {
           {/* Divider */}
           <View style={styles.dividerContainer} className="mt-6">
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
+            <Text style={styles.dividerText}>{t("common.or", "OR")}</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {/* Sign Up Link */}
           <View style={styles.signUpContainer} className="!mb-6 gap-2">
-            <Text style={styles.signUpText}>{t("login.haveAccount")}</Text>
+            <Text style={styles.signUpText}>
+              {t("login.haveAccount", "Already have an account?")}
+            </Text>
             <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-              <Text style={styles.signUpLink}>{t("common.login")}</Text>
+              <Text style={styles.signUpLink} className="text-primary">
+                {t("common.login", "Login")}
+              </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAwareScrollView>

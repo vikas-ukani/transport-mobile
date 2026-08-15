@@ -1,8 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import { Platform } from "react-native";
 import { io, Socket } from "socket.io-client";
 import { getBaseUrl } from "./api.service";
+import { AUTH_TOKEN_KEY, getStoreBy, setStoreBy } from "../lib/session";
 
 const DEVICE_ID_KEY = "@device_id";
 
@@ -23,10 +23,10 @@ async function getDeviceId(): Promise<string> {
 }
 
 async function getOrCreateStoredDeviceId(): Promise<string> {
-  let id = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  let id = await getStoreBy(DEVICE_ID_KEY);
   if (!id) {
     id = `web-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-    await AsyncStorage.setItem(DEVICE_ID_KEY, id);
+    await setStoreBy(DEVICE_ID_KEY, id);
   }
   return id;
 }
@@ -41,8 +41,7 @@ class SocketService {
     }
     const deviceId = await getDeviceId();
 
-    const token = await AsyncStorage.getItem("authToken");
-    console.log("connecting socket it", getBaseUrl());
+    const token = await getStoreBy(AUTH_TOKEN_KEY);
     this.socket = io(getBaseUrl(), {
       auth: {
         token,

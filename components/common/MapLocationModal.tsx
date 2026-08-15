@@ -1,11 +1,12 @@
 import { toast } from "@backpackapp-io/react-native-toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   TouchableOpacity,
@@ -21,176 +22,249 @@ const styles = StyleSheet.create({
     height: 48,
     width: 48,
   },
-  // markerFixed: {
-  //   // left: "50%",
-  //   // marginLeft: -24,
-  //   // marginTop: -48,
-  //   // position: "absolute",
-  //   top: "50%",
-  //   zIndex: 100,
-  // },
   label: { fontWeight: "600", marginBottom: 4 },
   address: { fontSize: 14, color: "#333" },
 });
 
-type RegionT = Region & {
-  latitudeDelta?: number;
-  longitudeDelta?: number;
+interface MapLocationModalProps {
+  show: boolean;
+  onHide: () => void;
+  onLocationSelected: (location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  }) => void;
+  latitude?: number | null;
+  longitude?: number | null;
   formattedAddress?: string;
+  isSetDefaultCurrentLocation?: boolean;
+}
+
+const DEFAULT_DELTA = 0.0922;
+
+const INITIAL_REGION = {
+  latitude: 0,
+  longitude: 0,
+  latitudeDelta: DEFAULT_DELTA,
+  longitudeDelta: DEFAULT_DELTA,
+  formattedAddress: "",
 };
 
-const MapLocationModal = ({
+const MapLocationModal: React.FC<MapLocationModalProps> = ({
   show,
   onHide,
   onLocationSelected,
   latitude = null,
   longitude = null,
+  formattedAddress = "",
   isSetDefaultCurrentLocation = false,
-}: any) => {
+}) => {
   const { t } = useTranslation();
-  const [region, setRegion] = useState<RegionT>({
-    latitude,
-    longitude,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
+
+  const currentRegionRef = useRef({
+    latitude: typeof latitude === "number" ? latitude : INITIAL_REGION.latitude,
+    longitude:
+      typeof longitude === "number" ? longitude : INITIAL_REGION.longitude,
+    latitudeDelta: DEFAULT_DELTA,
+    longitudeDelta: DEFAULT_DELTA,
+    formattedAddress: formattedAddress,
   });
-  const [isLocationPicked, setIsLocationPicked] = useState<boolean>(false);
 
-  // To mitigate timeout error on reverseGeocodeAsync, add timeout/robust error handling and retries.
-  // Prevent calling getAddress without valid coordinates.
+  const [addressLoading, setAddressLoading] = useState(false);
+  const addressRequestId = useRef(0);
 
+  // Helper to get address with robust error handling, cancel outdated requests
   const getAddress = useCallback(
-    async (
-      latitude: number,
-      longitude: number,
-      forceUpdate: boolean = false,
-    ) => {
-      if (typeof latitude !== "number" || typeof longitude !== "number") {
-        // Don't call reverseGeocodeAsync if coordinates are invalid
-        setRegion({
-          latitude,
-          longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-          formattedAddress: "",
-        });
-        return;
+    async (newRegion: Region, forceUpdate = false) => {
+      toast.dismiss();
+      setAddressLoading(true);
+      if (
+        typeof newRegion.latitude !== "number" ||
+        isNaN(newRegion.latitude) ||
+        typeof newRegion.longitude !== "number" ||
+        isNaN(newRegion.longitude)
+      ) {
+        return null;
       }
+      addressRequestId.current += 1;
+      const currentRequestId = addressRequestId.current;
 
-      // Helper to wrap a promise with a timeout
-      const withTimeout = (promise: Promise<any>, ms: number) => {
-        return Promise.race([
-          promise,
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Geocode timeout")), ms),
-          ),
-        ]);
+      const runGeocode = async () => {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            const geocodePromise = Location.reverseGeocodeAsync({
+              latitude: newRegion.latitude,
+              longitude: newRegion.longitude,
+            });
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Geocode timeout")), 4500),
+            );
+            const result = await Promise.race([geocodePromise, timeoutPromise]);
+            if (currentRequestId !== addressRequestId.current) return null;
+            // Always take the first item from reverseGeocodeAsync's array
+            return Array.isArray(result) ? result[0] : null;
+          } catch (err) {
+            if (attempt === 2) throw err;
+            await new Promise((r) => setTimeout(r, 450));
+          }
+        }
+        return null;
       };
 
       try {
-        let place: any = null;
-        // Retry logic for transient failures/timeouts
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          try {
-            const [result] = await withTimeout(
-              Location.reverseGeocodeAsync({ latitude, longitude }),
-              4000, // shorter timeout than 5s
-            );
-            place = result;
-            break;
-          } catch (err) {
-            if (attempt === 2) throw err;
-            await new Promise((r) => setTimeout(r, 500)); // wait before retry
-          }
-        }
+        const place = await runGeocode();
+        let formattedAddress =
+          place?.name && place?.city
+            ? `${place.name}, ${place.city}${place.region ? ", " + place.region : ""}${place.country ? ", " + place.country : ""}`
+            : place?.formattedAddress || "";
 
-        setRegion({
-          latitude,
-          longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-          formattedAddress: place?.formattedAddress || "",
-        });
-
-        if (isSetDefaultCurrentLocation || forceUpdate) {
-          setIsLocationPicked(true);
-        }
+        currentRegionRef.current = {
+          latitudeDelta: newRegion.latitudeDelta,
+          longitudeDelta: newRegion.longitudeDelta,
+          latitude: newRegion.latitude,
+          longitude: newRegion.longitude,
+          formattedAddress: formattedAddress || "",
+        };
       } catch (error: any) {
-        console.log("error reverseGeocodeAsync: ", error.message);
-        setRegion({
-          latitude,
-          longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-          formattedAddress: "",
-        });
-        toast.remove();
+        if (currentRequestId !== addressRequestId.current) return;
         toast.error(
-          error?.message?.includes("timeout")
-            ? "Reverse geocoding timed out. Please try again."
-            : "Failed to get address for this location.",
+          error?.message?.toLowerCase().includes("timeout")
+            ? t("common.geocodeTimeout") ||
+                "Reverse geocoding timed out. Please try again."
+            : t("common.geocodeFailed") ||
+                "Failed to get address for this location.",
         );
-        setIsLocationPicked(false);
+        return null;
+      } finally {
+        setAddressLoading(false);
       }
     },
-    [show, isSetDefaultCurrentLocation],
+    [t],
   );
 
-  const onMarkerDragEnd = (e: any) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-    setRegion({
-      ...region,
-      latitude,
-      longitude,
-      latitudeDelta: region.latitudeDelta,
-      longitudeDelta: region.longitudeDelta,
-    });
-    getAddress(latitude, longitude, true);
-  };
-
-  // useEffect(
-  useFocusEffect(
-    useCallback(() => {
+  // Effect: When modal opens, set to passed-in region or current location
+  useEffect(() => {
+    if (!show) return;
+    if (isSetDefaultCurrentLocation) {
       (async () => {
-        try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-
-          if (status !== "granted") {
-            toast.remove();
-            toast.error("Permission to access location was denied");
+        toast.dismiss();
+        let newLat = typeof latitude === "number" ? latitude : null;
+        let newLng = typeof longitude === "number" ? longitude : null;
+        if (
+          (newLat === null || isNaN(newLat) || newLat === 0) &&
+          (newLng === null || isNaN(newLng) || newLng === 0)
+        ) {
+          // Try requesting location permission and get actual location
+          try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+              toast.error(
+                t("common.permissionDenied") ||
+                  "Permission to access location was denied",
+              );
+              return;
+            }
+            const { coords } = await Location.getCurrentPositionAsync({});
+            newLat = coords.latitude;
+            newLng = coords.longitude;
+          } catch {
+            toast.error(
+              t("common.locationError") || "Error accessing location services.",
+            );
             return;
           }
-
-          // Get current position only if region is not set
-          if (region && !region.latitude && !region.longitude) {
-            const current = await Location.getCurrentPositionAsync({});
-            const { latitude, longitude }: any = current.coords;
-            getAddress(latitude, longitude);
-          }
-        } catch (error) {
-          toast.dismiss();
-          toast.error("Error accessing location services.");
-          console.error("Error getting location:", error);
         }
       })();
-    }, [getAddress, region]),
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, latitude, longitude]);
+
+  // Handles when user moves the map: recenter region & lookup address
+  // Optimization: Only run if region has truly changed
+  const regionTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastRegionRef = useRef<{ latitude: number; longitude: number } | null>(
+    null,
   );
 
-  // Corrected and optimized handler for region change completion
-  const onRegionChangeComplete = useCallback(
-    (newRegion: Region) => {
-      // setRegion((prev) => ({
-      //   ...prev,
-      //   ...newRegion,
-      //   // Maintain deltas if available, or use new ones
-      //   latitudeDelta: newRegion.latitudeDelta ?? prev.latitudeDelta,
-      //   longitudeDelta: newRegion.longitudeDelta ?? prev.longitudeDelta,
-      // }));
-      // Use the correct new lat/lng, not old props
-      getAddress(newRegion.latitude, newRegion.longitude, true);
-    },
-    []
-  );
+  const onRegionChangeComplete = useCallback(async (newRegion: Region) => {
+    try {
+      if (
+        typeof newRegion.latitude !== "number" ||
+        typeof newRegion.longitude !== "number"
+      ) {
+        return;
+      }
+
+      // Only trigger if the new region is significantly different
+      const last = lastRegionRef.current;
+      const precision = 0.00001;
+      const isSameAsLast =
+        last &&
+        Math.abs(last.latitude - newRegion.latitude) < precision &&
+        Math.abs(last.longitude - newRegion.longitude) < precision;
+
+      if (isSameAsLast) return; // Prevent unnecessary reloads
+
+      // Save new values before scheduling
+      lastRegionRef.current = {
+        latitude: newRegion.latitude,
+        longitude: newRegion.longitude,
+      };
+
+      // Debounce calls to getAddress (wait for the user to stop moving)
+      if (regionTimeout.current) {
+        clearTimeout(regionTimeout.current);
+      }
+      await getAddress(newRegion, true);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle address input changes
+  const onAddressTextChange = (text: string) => {
+    console.log("new Text", text);
+    currentRegionRef.current = {
+      latitudeDelta: currentRegionRef.current.latitudeDelta,
+      longitudeDelta: currentRegionRef.current.longitudeDelta,
+      latitude: currentRegionRef.current.latitude,
+      longitude: currentRegionRef.current.longitude,
+      formattedAddress: text,
+    };
+  };
+
+  // Prevent body scrolling/interactions when modal open (for web, no-op on native)
+  useEffect(() => {
+    if (Platform.OS === "web" && show) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [show]);
+
+  // Optimize: Don't call onLocationSelected unless address is truly set
+  const handleSelectionBtn = useCallback(() => {
+    toast.dismiss();
+    if (
+      !currentRegionRef.current.formattedAddress ||
+      currentRegionRef.current.formattedAddress.trim() === ""
+    ) {
+      toast.error(
+        t("common.enterFullLocation") || "Please enter full location.",
+      );
+      Keyboard.dismiss();
+      return;
+    }
+    onLocationSelected({
+      latitude: currentRegionRef.current.latitude,
+      longitude: currentRegionRef.current.longitude,
+      address: currentRegionRef.current.formattedAddress,
+    });
+  }, [onLocationSelected, t]);
 
   return (
     <View className="overflow-hidden rounded-xl border border-gray-100">
@@ -201,124 +275,106 @@ const MapLocationModal = ({
         onRequestClose={onHide}
         style={styles.container}
       >
-        <View className="absolute top-[50%] left-[50%] rig z-10 p-2">
-          <Ionicons
-            name="location-sharp"
-            size={26}
-            className="!text-danger"
-          ></Ionicons>
-        </View>
-        <TouchableOpacity
-          className="absolute top-5 right-5 z-10 p-2 bg-white rounded-full shadow-lg"
-          onPress={onHide}
-          activeOpacity={0.7}
+        {/* Pin Icon on map center */}
+        <View
+          style={{
+            position: "absolute",
+            top: "45%",
+            left: "50%",
+            zIndex: 5,
+            marginLeft: -30, // since icon is 48px wide
+            marginTop: -20, // since icon is 48px high, visually center (offset as needed)
+            pointerEvents: "none",
+          }}
         >
-          <Ionicons name="close" size={24} color="#333" />
-        </TouchableOpacity>
-        {region && region.latitudeDelta && region.longitudeDelta && (
-          <MapView
-            style={styles.map}
-            // style={styles.map}
-            region={{
-              latitude: region.latitude || 0,
-              longitude: region.longitude || 0,
-              latitudeDelta: region.latitudeDelta || 0.01,
-              longitudeDelta: region.longitudeDelta || 0.01,
-            }}
-            // onPress={onMarkerDragEnd}
-            provider={PROVIDER_GOOGLE}
-            onRegionChangeComplete={onRegionChangeComplete}
-          >
-            {/* <Marker
-              coordinate={{
-                latitude: region?.latitude || 0,
-                longitude: region?.longitude || 0,
-              }}
-              description="Hold and Drag to select location"
-              draggable
-              style={styles.marker}
-              centerOffset={{
-                x: Location.Accuracy.High,
-                y: Location.Accuracy.High,
-              }}
-              onDragEnd={onMarkerDragEnd}
-              title="Selected Location"
-            /> */}
-          </MapView>
-        )}
+          <Ionicons name="location-sharp" size={48} color="#ef4444" />
+        </View>
 
-        <View className="absolute right-5 left-5 bottom-10 p-4 bg-white rounded-xl shadow-lg">
-          <View className="flex-row justify-between items-center">
+        <TouchableOpacity
+          style={{
+            position: "absolute",
+            top: 18,
+            left: 18,
+            zIndex: 10,
+            backgroundColor: "#fff",
+            borderRadius: 24,
+            padding: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 4,
+            elevation: 2,
+          }}
+          className="!bg-screen border shadow-lg !border-primary"
+          onPress={onHide}
+          activeOpacity={0.75}
+        >
+          <Ionicons name="close" size={24} className="!text-primary" />
+        </TouchableOpacity>
+
+        {currentRegionRef.current.latitude !== undefined &&
+          currentRegionRef.current.longitude !== undefined && (
+            <MapView
+              style={styles.map}
+               className="!w-screen h-screen"
+              provider={PROVIDER_GOOGLE}
+              initialRegion={currentRegionRef.current}
+              // Use a debounced callback to optimize region updates (prevents excessive updates)
+              onRegionChangeComplete={onRegionChangeComplete}
+              showsUserLocation={true}
+              followsUserLocation={false}
+              zoomEnabled={true}
+              showsMyLocationButton={true}
+              // showsCompass={false}
+              
+              loadingIndicatorColor="#ef4444"
+            />
+          )}
+
+        {/* UI: address and confirm bar */}
+        <View
+          className="absolute right-5 left-5 bottom-8 p-3 py-4 bg-white rounded-2xl border-2 shadow-2xl border-primary"
+          style={{
+            elevation: 5, // maintain Android shadow
+            shadowColor: "#000", // maintain iOS shadow
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.18,
+            shadowRadius: 8,
+          }}
+        >
+          <View
+            style={{ flexDirection: "row", alignItems: "center" }}
+            className=""
+          >
             <TextInput
-              style={[styles.address, { minHeight: 40 }]}
-              className="flex-1 py-1 pr-3 px-5 text-base font-medium bg-white rounded-xl border-2 border-gray-200 !min-h-[60px] align-text-top"
-              value={
-                typeof region?.formattedAddress === "string"
-                  ? region.formattedAddress
-                  : ""
+              className="flex-1 min-h-[44px] bg-screen rounded-xl border border-primary  px-4 py-4 mr-1.5 text-base text-gray-800"
+              defaultValue={currentRegionRef.current.formattedAddress || ""}
+              placeholder={
+                addressLoading
+                  ? t("common.loadingAddress") || "Loading address..."
+                  : t("common.moveMarkerToSelectLocation") ||
+                    "Move marker to select location"
               }
-              placeholder={t("common.moveMarkerToSelectLocation")}
               multiline
-              numberOfLines={4}
-              onChangeText={(text) => {
-                // If you have setRegion in parent, lift the handler up; else do it via local state (may need useState in parent).
-                if (typeof setRegion === "function") {
-                  setRegion({
-                    ...region,
-                    formattedAddress: text,
-                  });
-                } else if (region) {
-                  region.formattedAddress = text;
-                }
-              }}
-              editable={true}
-              defaultValue={region?.formattedAddress || ""}
+              numberOfLines={3}
+              onChangeText={onAddressTextChange}
+              editable={!addressLoading}
             />
 
             <Pressable
-              style={{
-                marginLeft: 8,
-                padding: 6,
-                borderRadius: 16,
-                backgroundColor: "#f0f0f0",
-              }}
-              className="!bg-primaryLight disabled:!bg-gray-100"
+              className={`ml-1 p-2 rounded-2xl items-center justify-center ${
+                currentRegionRef.current.formattedAddress &&
+                currentRegionRef.current.formattedAddress.trim()
+                  ? "bg-primary opacity-100 border-screen"
+                  : "bg-gray-200 opacity-55 border-primary"
+              }`}
               disabled={
-                !region.formattedAddress || region.formattedAddress === ""
+                !currentRegionRef.current.formattedAddress ||
+                currentRegionRef.current.formattedAddress.trim() === ""
               }
-              onPress={() => {
-                console.log("region.formattedAddress", region.formattedAddress);
-                if (
-                  !region.formattedAddress ||
-                  region.formattedAddress === ""
-                ) {
-                  console.log(
-                    '"Please enter full location."',
-                    "Please enter full location.",
-                  );
-                  toast.dismiss();
-                  toast.error("Please enter full location.");
-                  return;
-                }
-
-                onLocationSelected({
-                  latitude: region?.latitude || 0,
-                  longitude: region?.longitude || 0,
-                  address: region.formattedAddress || "",
-                });
-              }}
+              onPress={handleSelectionBtn}
             >
-              <Ionicons
-                name="checkmark-sharp"
-                size={24}
-                className={
-                  "!text-white"
-                  // isLocationPicked &&
-                  // (!region.formattedAddress || region.formattedAddress === "")
-                  //   ? ""
-                  //   : "!text-black"
-                }
-              />
+              <Ionicons name="checkmark-sharp" size={28} color="#fff" />
             </Pressable>
           </View>
         </View>

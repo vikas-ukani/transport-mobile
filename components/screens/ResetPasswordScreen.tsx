@@ -62,7 +62,6 @@ const ResetPasswordScreen = () => {
         const params = new URLSearchParams(window.location.search);
         tokenValue = params.get('token');
         emailValue = params.get('email') || '';
-        console.log('tokenValue', { tokenValue, emailValue });
         setToken(token);
         setValue('email', emailValue);
       }

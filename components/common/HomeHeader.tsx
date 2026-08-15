@@ -1,11 +1,12 @@
+import { toast } from "@backpackapp-io/react-native-toast";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import DrawerMenuButton from "./DrawerMenuButton";
+import { getStoreBy, LOCALE_KEY, setStoreBy } from "../../lib/session";
 
 const HomeHeader = () => {
   const { t, i18n } = useTranslation();
@@ -16,7 +17,7 @@ const HomeHeader = () => {
     const setLanguageFromStorage = async () => {
       // Give priority to SecureStore, then fallback to user (if present)
       try {
-        const storedLang = await AsyncStorage.getItem("locale");
+        const storedLang = await getStoreBy(LOCALE_KEY);
         if (storedLang) {
           i18n.changeLanguage(storedLang);
         } else if (user && user.changeLanguage) {
@@ -32,12 +33,12 @@ const HomeHeader = () => {
   }, [user]);
 
   const changeLanguage = async (lang: string) => {
-    i18n.changeLanguage(lang);
-    try {
-      await AsyncStorage.setItem("locale", lang);
-    } catch (e) {
-      // Optionally handle error, e.g. show a toast
+    if (!lang) {
+      toast.error("Unable to change the language.");
+      return;
     }
+    i18n.changeLanguage(lang);
+    await setStoreBy(LOCALE_KEY, lang);
     setLanguageMenuVisible(false);
   };
 

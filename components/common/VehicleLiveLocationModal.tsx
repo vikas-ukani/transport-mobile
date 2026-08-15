@@ -4,22 +4,15 @@ import * as Location from "expo-location";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, TouchableOpacity, View } from "react-native";
 import MapView, {
-  Marker,
-  PROVIDER_GOOGLE,
-  Region,
-  UrlTile,
+    Marker,
+    PROVIDER_GOOGLE,
+    Region,
+    UrlTile,
 } from "react-native-maps";
 
-const API_KEY = "";
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  map: { flex: 1 },
-  label: { fontWeight: "600", marginBottom: 4 },
-  address: { fontSize: 14, color: "#333" },
-});
+const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 type RegionT = Region & {
   latitudeDelta?: number;
@@ -45,16 +38,41 @@ const VehicleLiveLocationModal = ({
     useCallback(() => {
       (async () => {
         try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== "granted") {
-            toast.remove();
-            toast.error("Permission to access location was denied");
-            return;
+          // Check if location is actually needed for this component.
+          // If this modal is to display a *given* latitude/longitude (from props),
+          // then requesting current device location is unnecessary.
+          // Only request permission if you intend to fetch user's current location.
+
+          if (latitude == null || longitude == null) {
+            // Only request permission and fetch location if one is missing.
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+              toast.remove();
+              toast.error("Permission to access location was denied");
+              return;
+            }
+
+            // Actually try to get current position if coordinates are missing
+            try {
+              const location = await Location.getCurrentPositionAsync({});
+              setRegion((prev) => ({
+                ...prev,
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              }));
+            } catch (locError: any) {
+              // This will catch 'Current location is unavailable' error
+              toast.dismiss();
+              toast.error(
+                "Current location is unavailable. Make sure that location services are enabled in your device settings.",
+              );
+              console.error("Error getting device location:", locError);
+            }
           }
         } catch (error) {
           toast.dismiss();
-          toast.error("Error accessing location services.");
-          console.error("Error getting location:", error);
+          toast.error("Error accessing location permissions.");
+          console.error("Error requesting location permission:", error);
         }
       })();
     }, []),
@@ -67,7 +85,7 @@ const VehicleLiveLocationModal = ({
         transparent={false}
         visible={!!show}
         onRequestClose={onHide}
-        style={styles.container}
+        style={{ flex: 1 }}
       >
         <TouchableOpacity
           className="absolute top-5 right-5 z-10 p-2 bg-white rounded-full shadow-lg"
@@ -79,7 +97,7 @@ const VehicleLiveLocationModal = ({
 
         {region && region.latitudeDelta && region.longitudeDelta && (
           <MapView
-            style={styles.map}
+            style={{ flex: 1 }}
             region={{
               latitude: region.latitude || 0,
               longitude: region.longitude || 0,
@@ -88,10 +106,11 @@ const VehicleLiveLocationModal = ({
             }}
             // onPress={onMarkerDragEnd}
             provider={PROVIDER_GOOGLE}
+            zoomControlEnabled
           >
             <UrlTile
               tileSize={512}
-              urlTemplate="https://api.mapbox.com/styles/v1/fugafuga/hogehoge/tiles/256/{z}/{x}/{y}?access_token=${API_KEY}"
+              urlTemplate={`https://api.mapbox.com/styles/v1/fugafuga/hogehoge/tiles/256/{z}/{x}/{y}?access_token=${API_KEY}`}
               maximumZ={19}
             />
             <Marker
