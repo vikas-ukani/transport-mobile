@@ -1,0 +1,557 @@
+import { toast } from "@/lib/toast";
+import axios, { AxiosError, AxiosInstance } from "axios";
+import { router } from "expo-router";
+import { Platform } from "react-native";
+import { AUTH_TOKEN_KEY, deleteStoreBy, getStoreBy } from "../lib/session";
+
+export const getBaseUrl = () => {
+  if (Platform.OS === "web") {
+    // Perform web-specific actions
+    return "http://0.0.0.0:8080";
+  }
+
+  return process.env.EXPO_PUBLIC_BACKEND_URL;
+};
+
+export const getApiUrl = () => {
+  return `${getBaseUrl()}/api`;
+  // return __DEV__
+  //   ? 'https://unspitefully-unresemblant-nia.ngrok-free.dev/api'
+  //   : process.env.EXPO_PUBLIC_API_URL;
+};
+
+class ApiService {
+  private client: AxiosInstance;
+
+  constructor() {
+    console.log("getApiUrl()", getApiUrl());
+    this.client = axios.create({
+      baseURL: getApiUrl(),
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        accept: "application/json",
+      },
+    });
+
+    this.setupInterceptors();
+  }
+
+  private setupInterceptors() {
+    // Request interceptor to add auth token
+    this.client.interceptors.request.use(
+      async (config: any) => {
+        const token = await getStoreBy(AUTH_TOKEN_KEY);
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+          config.headers["Content-Type"] = "application/json";
+          config.headers["Accept"] = "application/json";
+        }
+        return config;
+      },
+      (error: any) => Promise.reject(error),
+    );
+
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response: any) => response,
+      async (error: AxiosError) => {
+        console.log(
+          `API Crash Res:: [${error.config?.url}]`,
+          error.response?.data,
+        );
+
+        const resData: any = error.response?.data;
+        if (
+          // error.response?.status === 401 ||
+          resData?.detail === "Not authenticated"
+        ) {
+          // Token expired or invalid
+          if ((await getStoreBy(AUTH_TOKEN_KEY)) !== null) {
+            await deleteStoreBy(AUTH_TOKEN_KEY);
+          }
+          if ((await getStoreBy("user")) !== null) {
+            await deleteStoreBy("user");
+          }
+          // socketService.disconnect();
+          // redirecting to login page
+          router.push("/login");
+        }
+        return Promise.reject(error.response?.data || error.message);
+      },
+    );
+  }
+
+  // Auth endpoints
+  async me() {
+    try {
+      const response = await this.client.get("/me");
+      return response.data;
+    } catch (error: any) {
+      return error.response.data;
+    }
+  }
+
+  // Auth endpoints
+  async login(email: string, password: string) {
+    try {
+      const response = await this.client.post("/auth/signin", {
+        email: email,
+        password,
+      });
+      return response.data;
+    } catch (err: any) {
+      console.error("Login Error: ", err.message);
+      return {
+        success: false,
+        message: "Login failed. Please check your credentials.",
+      };
+    }
+  }
+
+  async forgotPassword(email: string) {
+    const res = await this.client.post("/auth/forgot-password", { email });
+    return res.data;
+  }
+
+  async resetPassword(new_password: string, token: string) {
+    const res = await this.client.post("/auth/reset-password", {
+      new_password,
+      token,
+    });
+    return res.data;
+  }
+
+  async register(userData: any) {
+    const response = await this.client.post("/auth/register", userData);
+    return response.data;
+  }
+
+  async sendOTP(mobile: string) {
+    const response = await this.client.post("/auth/send-otp", { mobile });
+    return response.data;
+  }
+
+  async verifyOTP(mobile: string, otp: string) {
+    const response = await this.client.post("/auth/verify-otp", {
+      mobile,
+      otp,
+    });
+    return response.data;
+  }
+
+  async sendEmailOTP(email: string) {
+    const response = await this.client.post("/auth/email-send-otp", { email });
+    return response.data;
+  }
+
+  async verifyEmailOTP(email: string, otp: string) {
+    const response = await this.client.post("/auth/email-verify-otp", {
+      email,
+      otp,
+    });
+    return response.data;
+  }
+
+  async userPartialUpdate(id: string, user: any) {
+    try {
+      const response = await this.client.put(
+        "/users/partial-update/" + id,
+        user,
+      );
+      return response.data;
+    } catch (err: any) {
+      throw new Error(err.response?.data || err.message);
+    }
+  }
+
+  // Booking endpoints
+  async createBooking(bookingData: any) {
+    try {
+      const response = await this.client.post("/bookings", bookingData);
+      return response.data;
+    } catch (err: any) {
+      throw new Error(err.response?.data || err.message);
+    }
+  }
+
+  async getMyBookings({ page, limit }: { page: number; limit: number }) {
+    const response = await this.client.get(
+      `/bookings?page=${page}&limit=${limit}`,
+    );
+    return response.data;
+  }
+
+  async getBookingById(id: string) {
+    try {
+      const response = await this.client.get(`/booking/${id}`);
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async deleteBookingById(id: string) {
+    const response = await this.client.delete(`/booking/${id}`);
+    return response.data;
+  }
+
+  async getBookingHistory() {
+    const response = await this.client.get("/bookings/history");
+    return response.data;
+  }
+
+  async getDriverRides({
+    page,
+    limit,
+    tab = "all",
+  }: {
+    page: number;
+    limit: number;
+    tab: string;
+  }) {
+    const response = await this.client.get(
+      `/driver-rides?page=${page}&limit=${limit}&tab=${tab}`,
+    );
+    return response.data;
+  }
+  async getMyActiveRide() {
+    const response = await this.client.get(`/my-running-rides`);
+    return response.data;
+  }
+  async closeBooking(id: string) {
+    const response = await this.client.get(`/cancel-booking/${id}`);
+    return response.data;
+  }
+
+  async cancelActiveRide(id: string) {
+    const response = await this.client.get(`/cancel-active-ride/${id}`);
+    return response.data;
+  }
+
+  async createBookingPayOrder(bookingId: string) {
+    const response = await this.client.get(
+      `/create-booking-pay-order/${bookingId}`,
+    );
+    return response.data;
+  }
+
+  async verifyPayment(payment: any) {
+    const res = await this.client.post(`/verify-payment`, payment);
+    return res.data;
+  }
+  async verifyBookingPayment(bookingId: string, payment: any) {
+    const res = await this.client.post(
+      `/verify-booking-payment/${bookingId}`,
+      payment,
+    );
+    return res.data;
+  }
+
+  async getMyFinishedRide({ page, limit }: { page: number; limit: number }) {
+    const response = await this.client.get(
+      `/my-finished-rides?page=${page}&limit=${limit}`,
+    );
+    return response.data;
+  }
+
+  async verifyRideWithCustomer(bookingId: string, otpCode: string) {
+    const response = await this.client.get(
+      `/booking/${bookingId}/complete-ride-otp/${otpCode}`,
+    );
+    return response.data;
+  }
+
+  async regenerateBookingOtp(bookingId: string) {
+    try {
+      const response = await this.client.get(
+        `/booking/${bookingId}/regenerate-otp`,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  // Bidding endpoints
+
+  async getBidsForBooking(bookingId: string) {
+    try {
+      const response = await this.client.get(`/booking/${bookingId}/bids`);
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async placeBid(bookingId: string, params: any) {
+    try {
+      const response = await this.client.post(
+        `/booking/${bookingId}/bids`,
+        params,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  // Vehicle endpoints
+  async registerVehicle(vehicleData: any) {
+    const response = await this.client.post("/vehicles", vehicleData);
+    return response.data;
+  }
+
+  // Vehicle endpoints
+  async updateRegisterVehicle(vehicleData: any, id: string) {
+    const response = await this.client.put(`/vehicle/${id}`, vehicleData);
+    return response.data;
+  }
+
+  async getVehicles() {
+    const response = await this.client.get("/vehicles");
+    return response.data;
+  }
+
+  async getVehicle(id: string) {
+    const response = await this.client.get(`/vehicle/${id}`);
+    return response.data;
+  }
+
+  async deleteVehicle(id: string) {
+    const response = await this.client.delete(`/vehicle/${id}`);
+    return response.data;
+  }
+
+  async createPostPayOrder() {
+    const response = await this.client.get(`/create-post-pay-order`);
+    return response.data;
+  }
+  async createGaragePayOrder() {
+    const response = await this.client.get(`/create-garage-pay-order`);
+    return response.data;
+  }
+  // Post endpoints
+  async createPost(postData: any) {
+    try {
+      const response = await this.client.post("/posts", postData);
+      return response.data;
+    } catch (err: any) {
+      throw new Error(err.response?.data || err.message);
+    }
+  }
+  // Update
+  async updatePost(postData: any, id: string) {
+    try {
+      const response = await this.client.put("/posts/" + id, postData);
+      return response.data;
+    } catch (err: any) {
+      throw new Error(err.response?.data || err.message);
+    }
+  }
+
+  async getVideos() {
+    try {
+      const response = await this.client.get("/videos");
+      return response.data;
+    } catch (err: any) {
+      throw new Error(err.response?.data || err.message);
+    }
+  }
+
+  async getPosts(params: { page: number; limit: number }) {
+    try {
+      const response = await this.client.get("/posts", {
+        params,
+      });
+      return response.data;
+    } catch (err: any) {
+      console.log("got Catch POSTS://", err.response?.data || err.message);
+    }
+  }
+  async likePost(id: string) {
+    try {
+      const response = await this.client.get("/like-post/" + id);
+      return response.data;
+    } catch (err: any) {
+      console.log("got Catch POSTS://", err.response?.data || err.message);
+    }
+  }
+  async getMyPosts() {
+    try {
+      const response = await this.client.get("/my-posts");
+      return response.data;
+    } catch (err: any) {
+      console.log("got Catch POSTS://", err.response?.data || err.message);
+    }
+  }
+  async getPostById(id: string) {
+    try {
+      const response = await this.client.get("/posts/" + id);
+      return response.data;
+    } catch (err: any) {
+      console.log("got Catch POSTS://", err.response?.data || err.message);
+    }
+  }
+
+  async deletePost(postId: string) {
+    try {
+      const response = await this.client.delete(`/posts/${postId}`);
+      return response.data;
+    } catch (err: any) {
+      console.log("got Catch POSTS://", err.response?.data || err.message);
+    }
+  }
+
+  // Garage
+  async getMyGarages() {
+    const response = await this.client.get(`/my-garages`);
+    return response.data;
+  }
+  // Garage
+  async updateGarage(garageId: string, garage: any) {
+    const response = await this.client.put(
+      `/update-garage/${garageId}`,
+      garage,
+    );
+    return response.data;
+  }
+  async getGarageById(id: string) {
+    const response = await this.client.get(`/garage/${id}`);
+    return response.data;
+  }
+  async getNearByGarages(params: any) {
+    const response = await this.client.get(`/get-nearby-garages`, {
+      params,
+    });
+    return response.data;
+  }
+  async createGarage(garage: any) {
+    const response = await this.client.post(`/create-garages`, garage);
+    return response.data;
+  }
+  async getCreateGarageAmount() {
+    const response = await this.client.get(`/get-create-garage-amount`);
+    return response.data;
+  }
+
+  // Notification endpoints
+  async getNotifications(page = 1, limit = 20) {
+    // page and limit can be customized as needed
+    const response = await this.client.get("/notifications", {
+      params: { page, limit },
+    });
+    return response.data;
+  }
+
+  async markAllNotificationsRead() {
+    try {
+      const response = await this.client.patch("/notifications/read-all");
+      return response.data;
+    } catch (err: any) {
+      console.log(
+        "got Catch markAllNotificationsRead://",
+        err.response?.data || err.message,
+      );
+    }
+  }
+
+  async markNotificationRead(notificationId: string) {
+    const response = await this.client.patch(
+      `/notifications/${notificationId}/read`,
+    );
+    return response.data;
+  }
+
+  async placeBookingBid(
+    bookingId: string,
+    body: { amount: number; note?: string },
+  ) {
+    try {
+      const response = await this.client.post(
+        `/booking/${bookingId}/bids`,
+        body,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  async acceptBookingBid(bookingId: string, bidId: string) {
+    try {
+      const response = await this.client.post(
+        `/booking/${bookingId}/bids/${bidId}/accept`,
+      );
+      return response.data;
+    } catch (err: any) {
+      const data = err?.response?.data;
+      if (data && typeof data === "object") return data;
+      throw err;
+    }
+  }
+
+  // Upload endpoint
+  /**
+   * Uploads an image file to the FastAPI upload route.
+   *
+   * @param f8ile The URI of the file to upload (local file URI)
+   * @param type The file context/category
+   * @returns Upload response from the backend
+   */
+  // async uploadImage(uri: string, type: 'profile' | 'vehicle' | 'post') {
+  async uploadImage(
+    fileUri: string,
+    type: "profile" | "vehicle" | "post" | "garage",
+  ) {
+    const filename: any = fileUri.split("/").pop();
+    const match = /\.(\w+)$/.exec(filename);
+    const typeE = match ? `image/${match[1]}` : `image`;
+
+    // This line has a subtle bug due to operator precedence:
+    // const name = `${type}_` + fileUri.split("/").pop() || `${Date.now()}.jpg`;
+    // When fileUri.split("/").pop() returns '', it'll fallback to Date.now, but only in the addition, not as a whole expression.
+    // Correct precedence is needed with parentheses:
+    const name = fileUri.split("/").pop()
+      ? `${type}_` + fileUri.split("/").pop()
+      : `${Date.now()}.jpg`;
+
+    let formData = new FormData();
+
+    formData.append("file", {
+      uri: fileUri,
+      name,
+      type: typeE || "image/jpeg",
+    } as any);
+
+    const { data: resData } = await axios.post(
+      `${getBaseUrl()}/upload`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    if (resData.success) {
+      return resData;
+    } else {
+      toast.error(resData.message);
+      return null;
+    }
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;
