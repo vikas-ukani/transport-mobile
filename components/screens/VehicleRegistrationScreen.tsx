@@ -1,8 +1,8 @@
 import { toast } from "@/lib/toast";
 import {
-    FontAwesome5,
-    Ionicons,
-    MaterialCommunityIcons,
+  FontAwesome5,
+  Ionicons,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Picker } from "@react-native-picker/picker";
@@ -13,13 +13,13 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,6 +27,7 @@ import * as yup from "yup";
 import { VEHICLE_RC_PATTERN_VALIDATION } from "../../constants/vehicle";
 import { useAuth } from "../../context/AuthContext";
 
+import { RefreshControl } from "react-native-gesture-handler";
 import apiService, { getBaseUrl } from "../../services/api.service";
 import CustomInput from "../common/CustomInput";
 
@@ -47,12 +48,13 @@ const schema = yup.object().shape({
   truckHeight: yup.string().required("Truck height is required"),
 });
 
-const VehicleRegistrationScreen = () => {
+const CreateUpdateVehicleScreen = () => {
   const { id } = useGlobalSearchParams();
   const { t } = useTranslation();
 
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [rcPhotos, setRcPhotos] = useState<string[]>([]);
+
   const [truckPhoto, setTruckPhoto] = useState<string[]>([]);
   const [truckRCIds, setTruckRCIds] = useState<string[]>([]);
   const [truckPhotoIds, setTruckPhotoIds] = useState<string[]>([]);
@@ -93,15 +95,16 @@ const VehicleRegistrationScreen = () => {
 
   useEffect(() => {
     if (id) {
-      getVehicle(id as string);
+      getVehicle();
     }
   }, [id]);
 
-  const getVehicle = async (id: string) => {
+  const getVehicle = async () => {
+    if (!id) return;
     try {
       setLoading(true);
       // Replace this URL with your actual API endpoint
-      const res = await apiService.getVehicle(id);
+      const res = await apiService.getVehicle(id as string);
       if (res?.success === false) {
         toast.error(res.message || "Failed to fetch vehicle data");
         return;
@@ -160,7 +163,7 @@ const VehicleRegistrationScreen = () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         aspect: [4, 4],
         quality: 1,
-        selectionLimit: type === "rc" ? 2 : 4,
+        selectionLimit: type === "rc" ? 1 : 4,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -181,7 +184,7 @@ const VehicleRegistrationScreen = () => {
     }
   };
 
-  const selectPhoto = async (type: "truck" | "rc" = "truck") => {
+  const selectPhoto = async (type: "truck" | "rc" = "truck", index = 0) => {
     try {
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -196,20 +199,24 @@ const VehicleRegistrationScreen = () => {
         allowsMultipleSelection: true,
         aspect: [4, 4],
         quality: 1,
-        selectionLimit: type === "rc" ? 2 : 4,
+        selectionLimit: type === "rc" ? 1 : 4,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         if (type === "truck") {
           setTruckPhoto([
-            // ...truckPhoto,
+            ...truckPhoto,
             ...result.assets.map((asset: any) => asset.uri),
           ]);
         } else if (type === "rc") {
-          setRcPhotos([
-            // ...rcPhotos,
-            ...result.assets.map((asset: any) => asset.uri),
-          ]);
+          const newImgIndex = JSON.parse(JSON.stringify(rcPhotos));
+          newImgIndex[index] = result.assets.map((asset: any) => asset.uri)[0];
+          setRcPhotos(newImgIndex);
+          // const rcImag = [
+          //   ...rcPhotos,
+          //   ...result.assets.map((asset: any) => asset.uri),
+          // ];
+          // setRcPhotos();
         }
       }
     } catch (e) {
@@ -264,27 +271,29 @@ const VehicleRegistrationScreen = () => {
     try {
       setLoading(true);
 
-      // Upload RC Photos (handles multiple RC images)
-      let uploadedRCPhotos: any[] = await Promise.all(
-        rcPhotos
-          .filter((photo) => photo.includes("uploads") === false)
-          .map(async (asset) => await apiService.uploadImage(asset, "vehicle")),
-      );
-      if (id && uploadedRCPhotos.length === 0) {
-        uploadedRCPhotos = truckRCIds.map((id) => id);
-      }
-      let rcImageIds = uploadedRCPhotos.map((u: any) => u?.id).filter(Boolean);
-      if (id) {
-        if (rcImageIds.length) {
-          rcImageIds = Array.from(
-            new Set([...(rcImageIds.length ? rcImageIds : [])]),
-          );
-        } else {
-          rcImageIds = Array.from(new Set([...(truckRCIds || [])]));
+      // Optimized upload and rcImageIds generation for RC Photos
+      let rcImageIds = ["", ""];
+      for (let i = 0; i < 2; i++) {
+        const rcPhoto = rcPhotos[i];
+        // Only upload if not already uploaded
+        if (rcPhoto && !rcPhoto.includes("uploads")) {
+          const uploadResult = await apiService.uploadImage(rcPhoto, "vehicle");
+          rcImageIds[i] = uploadResult?.id || "";
+        } else if (rcPhoto) {
+          // Use existing id if photo exists
+          rcImageIds[i] = truckRCIds[i] || "";
+        } else if (id && truckRCIds && truckRCIds[i]) {
+          // For existing vehicles fallback to previously saved image ids
+          rcImageIds[i] = truckRCIds[i];
         }
       }
-      if (rcImageIds.length === 0) {
-        toast.error(t("vehicles.pleaseUploadAtLeastOneRCBookPhoto"));
+      if (!rcImageIds[0] || !rcImageIds[1]) {
+        toast.error(
+          t(
+            "vehicles.pleaseUploadBothRCBookPhotos",
+            "Please upload both RC Book photos",
+          ),
+        );
         setLoading(false);
         return;
       }
@@ -308,7 +317,6 @@ const VehicleRegistrationScreen = () => {
         setLoading(false);
         return;
       }
- 
 
       const newVehicle = {
         ...data,
@@ -340,7 +348,7 @@ const VehicleRegistrationScreen = () => {
           if (vehicleId) {
             // const pay = await payVehicleRegistration(vehicleId);
             // if (pay.ok) {
-             
+
             reset();
             setRcPhotos([]);
             setTruckPhoto([]);
@@ -350,7 +358,6 @@ const VehicleRegistrationScreen = () => {
             );
             return;
           }
-          
         }
       } else {
         toast.error(resData.message || "Vehicle registration failed");
@@ -384,34 +391,37 @@ const VehicleRegistrationScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 !bg-screen">
+      {/* Fixed Header at the Top */}
+      <View
+        ref={formScrollRef}
+        className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100 shadow-sm"      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="flex-row gap-4 justify-start items-center p-2 -ml-2"
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Text className="text-xl font-bold text-gray-900">
+            {id ? t("vehicles.updateVehicle") : t("vehicles.addVehicle")}
+          </Text>
+        </TouchableOpacity>
+        <View style={{ width: 40 }} />
+      </View>
+      {/* Scroll View below the fixed header */}
       <KeyboardAwareScrollView
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1 }}
+          className="flex-1 px-4 py-4"
+          contentContainerStyle={{ flexGrow: 1 }}
         enableOnAndroid
-        extraScrollHeight={20}
         keyboardShouldPersistTaps="handled"
         ref={keyboardAwareScrollRef}
       >
-        <View
-          ref={formScrollRef}
-          className="flex-row items-center px-5 py-4 border-b border-gray-100 shadow-sm"
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="flex-row gap-4 justify-start items-center p-2 -ml-2"
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-            <Text className="text-xl font-bold text-gray-900">
-              {id ? t("vehicles.updateVehicle") : t("vehicles.addVehicle")}
-            </Text>
-          </TouchableOpacity>
-          <View style={{ width: 40 }} />
-        </View>
-
         <ScrollView
           className="flex-1 px-4"
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={getVehicle} />
+          }
         >
           {/* Driver Info Cards */}
           <CustomInput
@@ -480,28 +490,92 @@ const VehicleRegistrationScreen = () => {
                 <Text className="text-danger">*</Text>
               </Text>
             </View>
-            <View className="flex-row gap-2 justify-evenly w-12/12">
-              <TouchableOpacity
-                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50"
-                onPress={() => takeTruckPhoto("rc")}
+
+            <View className="flex-row flex-wrap mt-2 w-full">
+              <View
+                style={{
+                  width: "48%",
+                  marginRight: "4%",
+                }}
+                className="relative"
               >
-                <Ionicons name="camera-outline" size={20} />
-                <Text className="text-center text-gray-700">
-                  {t("register.takePhoto")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50"
-                onPress={() => selectPhoto("rc")}
+                {rcPhotos.length && rcPhotos[0] ? (
+                  <View>
+                    <Image
+                      source={{ uri: rcPhotos[0] }}
+                      className="w-full h-28 rounded-xl"
+                    />
+                    <TouchableOpacity
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full shadow-lg"
+                      onPress={() => {
+                        const updatedRcPhotos = [...rcPhotos];
+                        const updatedRcIds = [...truckRCIds];
+                        updatedRcPhotos[0] = "";
+                        updatedRcIds[0] = "";
+                        setRcPhotos(updatedRcPhotos);
+                        setTruckRCIds(updatedRcIds);
+                        // setRcPhotos(rcPhotos.filter((_, i) => i !== 0));
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="close" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    className="justify-center items-center w-full h-28 rounded border border-dashed"
+                    onPress={() => selectPhoto("rc", 0)}
+                  >
+                    <Text className="mt-2 text-xs text-center text-gray-500">
+                      {t("register.frontImage", "Front Image")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View
+                style={{
+                  width: "48%",
+                  marginRight: 0,
+                }}
+                className="relative"
               >
-                <Ionicons name="image-outline" size={20} />
-                <Text className="text-center text-gray-700">
-                  {t("register.selectPhoto")}
-                </Text>
-              </TouchableOpacity>
+                {rcPhotos.length && rcPhotos[1] ? (
+                  <View>
+                    <Image
+                      source={{ uri: rcPhotos[1] }}
+                      className="w-full h-28 rounded-xl"
+                    />
+                    <TouchableOpacity
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full shadow-lg"
+                      onPress={() => {
+                        const updatedRcPhotos = [...rcPhotos];
+                        const updatedRcIds = [...truckRCIds];
+                        updatedRcPhotos[1] = "";
+                        updatedRcIds[1] = "";
+                        setRcPhotos(updatedRcPhotos);
+                        setTruckRCIds(updatedRcIds);
+                        // setRcPhotos(rcPhotos.filter((_, i) => i !== 1));
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="close" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    className="justify-center items-center w-full h-28 rounded border border-dashed"
+                    onPress={() => selectPhoto("rc", 1)}
+                  >
+                    <Text className="mt-2 text-xs text-center text-gray-500">
+                      {t("register.otherSide", "Other Side Image")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
-            {rcPhotos.length > 0 ? (
+            {/* {rcPhotos.length > 0 && (
               <View className="flex-row flex-wrap mt-4 w-full">
                 {rcPhotos.map((uri, index) => (
                   <View key={index} className="relative mr-3 mb-3">
@@ -518,21 +592,7 @@ const VehicleRegistrationScreen = () => {
                   </View>
                 ))}
               </View>
-            ) : (
-              <View className="flex-row flex-wrap mt-4 space-x-1 w-full">
-                <View className="justify-center items-center w-1/2 h-20 rounded border border-dashed">
-                  <Text className="mt-2 text-xs text-center text-gray-500">
-                    Front Image
-                  </Text>
-                </View>
-                <View className="justify-center items-center w-1/2 h-20 rounded border border-dashed">
-                  <Text className="mt-2 text-xs text-center text-gray-500">
-                    Back Image
-                  </Text>
-                </View>
-              </View>
-            )}
-     
+            ) } */}
           </View>
 
           {/* Truck Photos */}
@@ -546,7 +606,7 @@ const VehicleRegistrationScreen = () => {
 
             <View className="flex-row gap-2 justify-evenly w-12/12">
               <TouchableOpacity
-                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50"
+                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 border-primary/50 bg-primary/10"
                 onPress={() => takeTruckPhoto("truck")}
               >
                 <Ionicons name="camera-outline" size={20} />
@@ -555,7 +615,7 @@ const VehicleRegistrationScreen = () => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 bg-primary/10 border-primary/50"
+                className="flex-row gap-2 justify-center items-center p-3 w-1/2 text-center rounded-lg border-2 border-primary/50 bg-primary/10"
                 onPress={() => selectPhoto("truck")}
               >
                 <Ionicons name="image-outline" size={20} />
@@ -565,11 +625,21 @@ const VehicleRegistrationScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {truckPhoto.length > 0 && (
-              <View className="flex-row flex-wrap mt-4">
-                {truckPhoto.map((uri, index) => (
-                  <View key={index} className="relative mr-3 mb-3">
-                    <Image source={{ uri }} className="w-28 h-28 rounded-xl" />
+            <View className="flex-row flex-wrap gap-y-2 mt-4 w-full">
+              {truckPhoto.length > 0 &&
+                truckPhoto.map((uri, index) => (
+                  <View
+                    style={{
+                      width: "48%",
+                      marginRight: index % 2 === 0 ? "4%" : 0,
+                    }}
+                    className="relative space-y-2"
+                    key={index}
+                  >
+                    <Image
+                      source={{ uri }}
+                      className="w-full h-28 rounded-xl"
+                    />
                     <TouchableOpacity
                       className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full shadow-lg"
                       onPress={() => removeTruckPhotos(index)}
@@ -579,8 +649,7 @@ const VehicleRegistrationScreen = () => {
                     </TouchableOpacity>
                   </View>
                 ))}
-              </View>
-            )}
+            </View>
           </View>
 
           {/* Truck Type */}
@@ -594,7 +663,7 @@ const VehicleRegistrationScreen = () => {
               render={({ field: { onChange, value } }) => (
                 <View className="flex-row gap-3">
                   <TouchableOpacity
-                    className={`flex-1 flex-row items-center px-4 py-4 rounded-lg border ${
+                    className={`flex-1 flex-row items-center rounded-lg border px-4 py-4 ${
                       getValues("truckType") === "pickup"
                         ? "border-primary bg-primary/10"
                         : "border-gray-200 bg-white"
@@ -622,7 +691,7 @@ const VehicleRegistrationScreen = () => {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    className={`flex-1 flex-row items-center px-4 py-4 rounded-lg border ${
+                    className={`flex-1 flex-row items-center rounded-lg border px-4 py-4 ${
                       getValues("truckType") === "truck"
                         ? "border-primary bg-primary/10"
                         : "border-gray-200 bg-white"
@@ -668,7 +737,7 @@ const VehicleRegistrationScreen = () => {
               render={({ field: { onChange, value } }) => (
                 <View className="flex-row gap-3">
                   <TouchableOpacity
-                    className={`flex-1 flex-row items-center px-4 py-3 gap-2 rounded-lg border ${
+                    className={`flex-1 flex-row items-center gap-2 rounded-lg border px-4 py-3 ${
                       getValues("bodyType") === "open"
                         ? "border-primary bg-primary/10"
                         : "border-gray-200 bg-white"
@@ -685,7 +754,7 @@ const VehicleRegistrationScreen = () => {
                       }
                     />
                     <Text
-                      className={`duration-300 text-center text-sm font-medium ${
+                      className={`text-center text-sm font-medium duration-300 ${
                         getValues("bodyType") === "open"
                           ? "!text-primary"
                           : "text-black"
@@ -696,7 +765,7 @@ const VehicleRegistrationScreen = () => {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    className={`flex-1 flex-row items-center gap-2 px-4 py-3 rounded-lg border ${
+                    className={`flex-1 flex-row items-center gap-2 rounded-lg border px-4 py-3 ${
                       getValues("bodyType") === "container"
                         ? "border-primary bg-primary/10"
                         : "border-gray-200 bg-white"
@@ -713,7 +782,7 @@ const VehicleRegistrationScreen = () => {
                       }
                     />
                     <Text
-                      className={`duration-300 text-center text-sm font-medium ${
+                      className={`text-center text-sm font-medium duration-300 ${
                         getValues("bodyType") === "container"
                           ? "!text-primary"
                           : "text-black"
@@ -840,9 +909,9 @@ const VehicleRegistrationScreen = () => {
               activeOpacity={0.7}
             >
               <View
-                className={`w-6 h-6 border-2 rounded mr-3 items-center justify-center ${
+                className={`mr-3 h-6 w-6 items-center justify-center rounded border-2 ${
                   referralCodeVisible
-                    ? "bg-primary border-primary"
+                    ? "border-primary bg-primary"
                     : "border-gray-300"
                 }`}
               >
@@ -915,4 +984,4 @@ const VehicleRegistrationScreen = () => {
   );
 };
 
-export default VehicleRegistrationScreen;
+export default CreateUpdateVehicleScreen;

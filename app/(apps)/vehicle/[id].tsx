@@ -1,5 +1,5 @@
-import VehicleRegistrationScreen from '../../../components/screens/VehicleRegistrationScreen';
+import CreateUpdateVehicleScreen from "../../../components/screens/VehicleRegistrationScreen";
 
 export default function EditVehicle() {
-  return <VehicleRegistrationScreen />;
+  return <CreateUpdateVehicleScreen />;
 }

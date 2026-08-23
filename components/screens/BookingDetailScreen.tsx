@@ -13,7 +13,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, UrlTile } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import apiService from "../../services/api.service";
@@ -25,6 +25,7 @@ function formatINR(minor?: number): string {
   if (typeof minor !== "number") return "₹0";
   return "₹" + minor.toLocaleString("en-IN", { minimumFractionDigits: 2 });
 }
+const googleMapKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -198,7 +199,6 @@ export default function BookingDetailScreen() {
             zoomEnabled={true}
             pitchEnabled={false}
             rotateEnabled={false}
-            showsPointsOfInterest={false}
             showsBuildings={false}
             showsIndoors={false}
             showsMyLocationButton={true}
@@ -207,6 +207,12 @@ export default function BookingDetailScreen() {
             showsUserLocation={true}
             userLocationCalloutEnabled
           >
+            <UrlTile
+            urlTemplate={`https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}?access_token=${googleMapKey}`}
+            maximumZ={20}
+            tileSize={256}
+            zIndex={0} // Make sure it's at the bottom
+          />
             {/* Show PICKUP marker */}
             <Marker
               coordinate={pickupCoordinate}
@@ -504,20 +510,20 @@ export default function BookingDetailScreen() {
           {sortedBids.map((bid: any) => (
             <View key={bid.id} className="flex-col gap-1 justify-start">
               <View
-                className={`p-4 mb-3 rounded-xl border ${
+                className={`mb-3 rounded-xl border p-4 ${
                   bid.status === "ACCEPTED"
-                    ? "bg-green-50 border-primary"
-                    : "bg-white border-gray-100"
+                    ? "border-primary bg-green-50"
+                    : "border-gray-100 bg-white"
                 }  `}
               >
                 <View className="flex-row gap-1 justify-between">
                   <View className="flex-row gap-1 items-center">
-                    <View className="w-[34px] h-[34px] border !border-primary rounded-full bg-screen justify-center items-center ">
+                    <View className="h-[34px] w-[34px] items-center justify-center rounded-full border !border-primary bg-screen ">
                       <Text className="text-lg font-bold text-primary">
                         {bid?.driver.name?.[0]?.toUpperCase() || "U"}
                       </Text>
                     </View>
-                    <View className="flex-col !items-start gap-1 ml-2">
+                    <View className="ml-2 flex-col !items-start gap-1">
                       <Text className="font-bold text-gray-900">
                         {bid?.driver?.name ? (
                           bid?.driver.name
@@ -722,7 +728,7 @@ export default function BookingDetailScreen() {
         );
         refetchBooking?.(); // Optionally refresh booking details if such method exists
         // Redial to the main screen (booking list) after successful close
-        router.replace("/(apps)/bookings");
+        router.replace("/(apps)/(tabs)/bookings");
       } else {
         toast.error(
           response.message ??
@@ -774,7 +780,7 @@ export default function BookingDetailScreen() {
 
       <View className="flex-row items-center px-5 py-4 bg-white border-b border-gray-100 shadow-lg">
         <TouchableOpacity
-          onPress={() => router.push("/(apps)/bookings")}
+          onPress={() => router.push("/(apps)/(tabs)/bookings")}
           className="flex-row gap-4 justify-start items-center p-2 -ml-2"
           activeOpacity={0.7}
         >
@@ -817,7 +823,7 @@ export default function BookingDetailScreen() {
         {/* Show 'Complete' and 'Pay' button fixed at the bottom using TailwindCSS */}
         {bookingData?.assignedDriverUserId &&
           bookingData.status !== "COMPLETED" && (
-            <View className="absolute left-0 right-0 bottom-0 p-4 z-[1000] bg-white/95  shadow-lg">
+            <View className="absolute bottom-0 left-0 right-0 z-[1000] bg-white/95 p-4  shadow-lg">
               <TouchableOpacity
                 className="flex-row justify-center items-center py-3 mb-2 w-full h-16 rounded-lg bg-primary"
                 onPress={() => setShowOtpModal("complete")}
@@ -831,7 +837,7 @@ export default function BookingDetailScreen() {
           )}
 
         {showOtpModal && (
-          <View className="absolute inset-0 !w-full z-[999] bg-black/45">
+          <View className="absolute inset-0 z-[999] !w-full bg-black/45">
             <View className="flex-1 justify-center items-center px-6 bg-black/60">
               <View className="p-6 w-full max-w-sm bg-white rounded-xl shadow-xl">
                 <Text className="mb-4 text-lg font-semibold text-center">
@@ -856,7 +862,7 @@ export default function BookingDetailScreen() {
                   </View>
                 )}
                 <TouchableOpacity
-                  className="px-3 py-2 mb-4 w-full rounded-lg border bg-primary border-primary"
+                  className="px-3 py-2 mb-4 w-full rounded-lg border border-primary bg-primary"
                   onPress={handleGenerateOtp}
                 >
                   <Text className="text-lg font-semibold text-center text-white">

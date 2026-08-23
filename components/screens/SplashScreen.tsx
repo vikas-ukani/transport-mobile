@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef } from "react";
 import {
     Animated,
     Dimensions,
@@ -8,9 +8,9 @@ import {
     StyleSheet,
     Text,
     View,
-} from 'react-native';
+} from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -49,7 +49,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           toValue: 1,
           duration: 2000,
           useNativeDriver: true,
-        })
+        }),
       ),
     ]).start();
 
@@ -68,7 +68,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             duration: 600,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
     };
 
@@ -76,30 +76,30 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     createDotAnimation(dot2Anim, 200).start();
     createDotAnimation(dot3Anim, 400).start();
 
-    // Navigate after 2 seconds
+    // Navigate after 1 second
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 500,
+          duration: 300,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 0.8,
-          duration: 500,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start(() => {
         onFinish();
       });
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ["0deg", "360deg"],
   });
 
   const dot1Scale = dot1Anim.interpolate({
@@ -120,7 +120,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#9333EA', '#7C3AED', '#6D28D9']}
+        colors={["#046498", "#7C3AED", "#22ac5c"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -151,11 +151,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
               },
             ]}
           >
-            <View style={styles.iconWrapper}>
+            <View
+              style={styles.iconWrapper}
+              className="!border-4 !border-primary shadow-primary"
+            >
               <Image
-                source={require('@/assets/images/icon.png')}
-                style={{ width: 80, height: 80, borderRadius: 20 }}
-                resizeMode='contain'
+                source={require("@/assets/logo.png")}
+                style={{ width: 180, height: 180, borderRadius: 20 }}
+                resizeMode="contain"
               />
             </View>
           </Animated.View>
@@ -170,8 +173,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
               },
             ]}
           >
-            <Text style={styles.appName}>Transport Hub</Text>
-            <Text style={styles.tagline}>Your Reliable Logistics Partner</Text>
+            <Text style={styles.appName} className="!text-screen">
+              {process.env.EXPO_PUBLIC_APP_NAME || "Transport"}
+            </Text>
+            {/* <Text style={styles.tagline}>Your Reliable Logistics Partner</Text> */}
           </Animated.View>
 
           {/* Loading Indicator */}
@@ -183,8 +188,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
               },
             ]}
           >
-            <View style={styles.loadingDots}>
+            <View style={styles.loadingDots} className="!text-primary">
               <Animated.View
+                className="!text-primary"
                 style={[
                   styles.dot,
                   {
@@ -225,21 +231,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           ]}
         >
           <Ionicons
-            name='location'
+            name="location"
             size={24}
-            color='#FFFFFF'
+            color="#FFFFFF"
             style={[styles.decorIcon, { marginHorizontal: 15 }]}
           />
           <Ionicons
-            name='cube'
+            name="cube"
             size={24}
-            color='#FFFFFF'
+            color="#FFFFFF"
             style={[styles.decorIcon, { marginHorizontal: 15 }]}
           />
           <Ionicons
-            name='time'
+            name="time"
             size={24}
-            color='#FFFFFF'
+            color="#FFFFFF"
             style={[styles.decorIcon, { marginHorizontal: 15 }]}
           />
         </Animated.View>
@@ -254,55 +260,55 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
   },
   backgroundCircle: {
-    position: 'absolute',
+    position: "absolute",
     width: width * 1.5,
     height: width * 1.5,
     borderRadius: width * 0.75,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     top: -width * 0.5,
     left: -width * 0.25,
   },
   content: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     flex: 1,
   },
   logoContainer: {
     marginBottom: 20,
   },
   iconWrapper: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   textContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 60,
   },
   appName: {
     fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   tagline: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '300',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "300",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -310,23 +316,23 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   loadingDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   dot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     marginHorizontal: 6,
   },
   bottomDecoration: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   decorIcon: {
     opacity: 0.6,

@@ -9,18 +9,23 @@ export const unstable_settings = {
 
 export default function AppsLayout() {
   return (
-    <>
-      {Platform.OS !== "web" && <UserGPSUpdate />}
-      <Drawer
-        drawerContent={(props: any) => <AppDrawerContent {...props} />}
-        screenOptions={{
-          headerShown: false,
-          drawerType: "slide",
-          overlayColor: "rgba(0,0,0,0.45)",
-          drawerStyle: { width: 300 },
-          swipeEnabled: true,
-        }}
-      />
-    </>
+    <Drawer
+      drawerContent={(props: any) => (
+        <>
+          {/* UserGPSUpdate uses useFocusEffect (expo-router) which needs NavigationStateContext.
+              It must render inside the navigator tree, not as a sibling before the Drawer mounts. */}
+          {Platform.OS !== "web" && <UserGPSUpdate />}
+          <AppDrawerContent {...props} />
+        </>
+      )}
+      screenOptions={{
+        headerShown: false,
+        drawerType: "slide",
+        overlayColor: "rgba(0,0,0,0.45)",
+        drawerStyle: { width: 300 },
+        swipeEnabled: true,
+      }}
+    />
   );
 }
+

@@ -17,6 +17,13 @@ import { AUTH_TOKEN_KEY, deleteStoreBy, setStoreBy } from "../lib/session";
 import apiService from "../services/api.service";
 import socketService from "../services/socket";
 
+// NOTE: useRouter and useSegments are imported but ONLY used inside
+// AuthNavigationHandler (which renders inside the navigator tree).
+// They are NOT called inside AuthProvider to avoid the
+// "Couldn't find a navigation context" crash that occurs when
+// AuthProvider renders before the <Stack>/<Drawer> mounts its
+// NavigationStateContext.
+
 export type UserType = "customer" | "driver";
 
 export interface User {
@@ -46,6 +53,11 @@ interface AuthContextType {
   register: (userData: any, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
+  // Internal: bridge to AuthNavigationHandler for navigation after auth actions.
+  // AuthProvider cannot call useRouter/useSegments directly because it renders
+  // outside the <Stack> navigator, and those hooks require NavigationStateContext.
+  _pendingRedirect: string | null;
+  _clearPendingRedirect: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,32 +70,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
   // Prevent race conditions with isMounted ref
   const isMounted = useRef(true);
-  const router = useRouter();
-  const segments = useSegments(); // expo-router segments can be used to approximate location
 
-  // Helper: detect if the current route is /login
-  // expo-router does not provide a pathname; we infer from segments
-  const isOnLogin = () => {
-    // segments example: ["(auth)", "login"]
-    if (!segments || segments.length === 0) return false;
-    return segments.includes("login");
-  };
-
-  // Helper to reset authentication
-  const resetAuth = useCallback(
-    async (showToast = true, message?: string) => {
-      await deleteStoreBy(AUTH_TOKEN_KEY);
-      socketService.disconnect();
-      setUser(null);
-      if (showToast && message) toast.error(message);
-      // Only navigate if not already on /login
-      if (router?.replace && !isOnLogin()) {
-        router.replace("/login");
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router, segments]
+  // _pendingRedirect is set by auth actions (login/logout/resetAuth) and
+  // consumed by AuthNavigationHandler which renders inside the navigator tree.
+  // This avoids calling useRouter/useSegments inside AuthProvider (which is
+  // outside the <Stack> and would crash with "navigation context not found").
+  const [_pendingRedirect, _setPendingRedirect] = useState<string | null>(null);
+  const _clearPendingRedirect = useCallback(
+    () => _setPendingRedirect(null),
+    [],
   );
+
+  // Helper to reset authentication (no router call — delegate to AuthNavigationHandler)
+  const resetAuth = useCallback(async (showToast = true, message?: string) => {
+    await deleteStoreBy(AUTH_TOKEN_KEY);
+    socketService.disconnect();
+    if (isMounted.current) setUser(null);
+    if (showToast && message) toast.error(message);
+    _setPendingRedirect("/login");
+  }, []);
 
   // Fetch user info from backend, handle auth/session state
   const fetchUserFromBackend = useCallback(async () => {
@@ -100,7 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } catch (error) {
       await resetAuth(true, "Session expired. Please log in again.");
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) setIsLoading(false);
     }
   }, [resetAuth]);
 
@@ -132,107 +137,103 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, [user]);
 
   // Refined me (auth check/refresh) function
-  const me = useCallback(
-    async () => {
-      setIsLoading(true);
-      try {
-        const res = await apiService.me();
-        if (res.success === false || res.detail === "Not authenticated") {
-          await resetAuth(true, "Session expired. Please log in again.");
-        } else if (res.user) {
-          setUser(res.user);
-          await socketService.connect();
-          router.replace("/(apps)/(tabs)");
-        }
-      } catch (error: any) {
+  const me = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiService.me();
+      if (res.success === false || res.detail === "Not authenticated") {
         await resetAuth(true, "Session expired. Please log in again.");
-        await socketService.disconnect();
-      } finally {
-        setIsLoading(false);
+      } else if (res.user) {
+        if (isMounted.current) setUser(res.user);
+        await socketService.connect();
+        _setPendingRedirect("/(apps)/(tabs)");
       }
-    },
-    [resetAuth, router]
-  );
+    } catch (error: any) {
+      await resetAuth(true, "Session expired. Please log in again.");
+      await socketService.disconnect();
+    } finally {
+      if (isMounted.current) setIsLoading(false);
+    }
+  }, [resetAuth]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setIsLoading(true);
-      try {
-        const res = await apiService.login(email, password);
-        if (res.success === false || res.error) {
-          toast.error(res.message || "Login failed. Please try again.");
-          setUser(null);
-          await deleteStoreBy(AUTH_TOKEN_KEY);
-          return {
-            error: res.message || "Login failed. Please try again.",
-          };
-        } else {
-          if (res.token) {
-            await setStoreBy(AUTH_TOKEN_KEY, res.token);
-          } else {
-            await deleteStoreBy(AUTH_TOKEN_KEY);
-          }
-          setUser(res.user);
-          // Don't use possibly stale user variable in console.log
-          console.log("SetUser Data", res.user);
-          await socketService.connect();
-          router.replace("/(apps)/(tabs)");
-        }
-      } catch (error: any) {
-        setUser(null);
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const res = await apiService.login(email, password);
+      if (res.success === false || res.error) {
+        toast.error(res.message || "Login failed. Please try again.");
+        if (isMounted.current) setUser(null);
         await deleteStoreBy(AUTH_TOKEN_KEY);
-        toast.error("Login failed due to unexpected error. Please try again.");
-        return { error: error?.response?.data || "Unknown error" };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-  console.log("user is", user?.id, user?.name, user?.email, user?.latitude, user?.longitude);
-
-  const register = useCallback(
-    async (userData: any, password: string) => {
-      setIsLoading(true);
-      try {
-        const response = await apiService.register({ ...userData, password });
-        if (response.success) {
-          toast.success(response.message || "Registration successful");
-          setUser(response.user);
-          if (response.token) {
-            await setStoreBy(AUTH_TOKEN_KEY, response.token);
-          } else {
-            await deleteStoreBy(AUTH_TOKEN_KEY);
-          }
-          await socketService.connect();
-          router.replace("/(apps)/(tabs)");
+        return {
+          error: res.message || "Login failed. Please try again.",
+        };
+      } else {
+        if (res.token) {
+          await setStoreBy(AUTH_TOKEN_KEY, res.token);
         } else {
-          toast.error(response.message || "Registration failed");
-          setUser(null);
           await deleteStoreBy(AUTH_TOKEN_KEY);
         }
-      } catch (error: any) {
-        setUser(null);
-        await deleteStoreBy(AUTH_TOKEN_KEY);
-        toast.error("Registration failed due to unexpected error.");
-        return error?.response?.data;
-      } finally {
-        setIsLoading(false);
+        if (isMounted.current) setUser(res.user);
+        console.log("SetUser Data", res.user);
+        await socketService.connect();
+        _setPendingRedirect("/(apps)/(tabs)");
       }
-    },
-    []
+    } catch (error: any) {
+      if (isMounted.current) setUser(null);
+      await deleteStoreBy(AUTH_TOKEN_KEY);
+      toast.error("Login failed due to unexpected error. Please try again.");
+      return { error: error?.response?.data || "Unknown error" };
+    } finally {
+      if (isMounted.current) setIsLoading(false);
+    }
+  }, []);
+  console.log(
+    "user is",
+    user?.id,
+    user?.name,
+    user?.email,
+    user?.latitude,
+    user?.longitude,
   );
+
+  const register = useCallback(async (userData: any, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.register({ ...userData, password });
+      if (response.success) {
+        toast.success(response.message || "Registration successful");
+        if (isMounted.current) setUser(response.user);
+        if (response.token) {
+          await setStoreBy(AUTH_TOKEN_KEY, response.token);
+        } else {
+          await deleteStoreBy(AUTH_TOKEN_KEY);
+        }
+        await socketService.connect();
+        _setPendingRedirect("/(apps)/(tabs)");
+      } else {
+        toast.error(response.message || "Registration failed");
+        if (isMounted.current) setUser(null);
+        await deleteStoreBy(AUTH_TOKEN_KEY);
+      }
+    } catch (error: any) {
+      if (isMounted.current) setUser(null);
+      await deleteStoreBy(AUTH_TOKEN_KEY);
+      toast.error("Registration failed due to unexpected error.");
+      return error?.response?.data;
+    } finally {
+      if (isMounted.current) setIsLoading(false);
+    }
+  }, []);
 
   const logout = useCallback(async () => {
-    setIsLoading(true);
+    if (isMounted.current) setIsLoading(true);
     socketService.disconnect();
-    setUser(null);
+    if (isMounted.current) setUser(null);
     await deleteStoreBy(AUTH_TOKEN_KEY);
-    // Use replace so user can't go 'back' after logging out
-    router.replace && router.replace("/login");
-    setIsLoading(false);
-    toast.success("Logged out successfully.");
-  }, [router]);
+    _setPendingRedirect("/login");
+    if (isMounted.current) setIsLoading(false);
+    // toast.success("Logged out successfully.");
+  }, []);
 
   const updateUser = useCallback(async (userData: Partial<User>) => {
     setUser((current) => (current ? { ...current, ...userData } : current));
@@ -249,12 +250,55 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         logout,
         updateUser,
         me,
+        _pendingRedirect,
+        _clearPendingRedirect,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
+
+/**
+ * AuthNavigationHandler
+ *
+ * Renders INSIDE the navigator tree (must be a child of <Stack> or <Tabs>).
+ * Reads _pendingRedirect from AuthContext and performs router.replace().
+ *
+ * This separation is required because useRouter() and useSegments() from
+ * expo-router internally access @react-navigation/native's NavigationStateContext,
+ * which only exists after the <Stack>/<Drawer> navigator has mounted.
+ * AuthProvider renders above the Stack (in RootLayout), so we cannot call
+ * those hooks there.
+ *
+ * Usage in _layout.tsx:
+ *   <Stack>
+ *     <AuthNavigationHandler />
+ *     ...
+ *   </Stack>
+ */
+export function AuthNavigationHandler() {
+  const { _pendingRedirect, _clearPendingRedirect } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (!_pendingRedirect) return;
+
+    // Avoid navigating to /login if already on the login screen
+    const isOnLogin = Array.isArray(segments) && segments.includes("login");
+    if (_pendingRedirect === "/login" && isOnLogin) {
+      _clearPendingRedirect();
+      return;
+    }
+
+    router.replace(_pendingRedirect as any);
+    _clearPendingRedirect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_pendingRedirect]);
+
+  return null;
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

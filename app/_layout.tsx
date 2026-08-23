@@ -3,11 +3,16 @@ import "@/global.css";
 import "@/i18n/config";
 import client from "@/lib/client";
 import Toast from "react-native-toast-message";
+// Set Expo Router's initial route to the splash screen
+export const unstable_settings = {
+  initialRouteName: "(auth)/splash",
+};
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { NavigationContainer } from "@react-navigation/native";
 
 function RootNavigator() {
   const { isAuthenticated } = useAuth();
@@ -16,7 +21,7 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerShown: false,
-        statusBarHidden: false,
+        // Remove/hide statusBarHidden to ensure StatusBar remains visible
         statusBarAnimation: "slide",
         statusBarStyle: "dark",
       }}
@@ -26,7 +31,7 @@ function RootNavigator() {
           name="(apps)"
           options={{
             headerShown: false,
-            statusBarHidden: false,
+            // Remove/hide statusBarHidden to ensure StatusBar remains visible
             statusBarAnimation: "slide",
             statusBarStyle: "dark",
           }}
@@ -38,7 +43,7 @@ function RootNavigator() {
           name="(auth)/login"
           options={{
             headerShown: false,
-            statusBarHidden: false,
+            // Remove/hide statusBarHidden to ensure StatusBar remains visible
             statusBarStyle: "dark",
             statusBarAnimation: "slide",
           }}
@@ -53,9 +58,14 @@ export default function RootLayout() {
     // <AppErrorBoundary>
     <QueryClientProvider client={client}>
       <AuthProvider>
-        <StatusBar style="inverted" />
+        {/* Set StatusBar to visible and a preferred style for mobile */}
+        <StatusBar style="dark" hidden={false} />
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <RootNavigator />
+          
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+     
           <Toast
             position="top"
             visibilityTime={5000}

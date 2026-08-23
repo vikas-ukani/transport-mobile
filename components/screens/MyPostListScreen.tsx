@@ -58,10 +58,10 @@ const MyPostListScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-screen">
-      <View className="flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
+      <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-5 py-4 shadow-sm">
         <TouchableOpacity
           onPress={() => router.replace("/(apps)/(tabs)")}
-          className="flex-row gap-4 justify-start items-center p-2 -ml-2"
+          className="-ml-2 flex-row items-center justify-start gap-4 p-2"
           activeOpacity={0.7}
         >
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
@@ -75,7 +75,7 @@ const MyPostListScreen = () => {
           className=""
           activeOpacity={0.8}
         >
-          <View className="flex-row gap-1 items-center">
+          <View className="flex-row items-center gap-1">
             <Ionicons name="add-circle-outline" size={24} color="black" />
             <Text className="text-xl font-bold text-black">
               {t("home.post")}

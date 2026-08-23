@@ -1,4 +1,3 @@
-console.log('process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY)
 module.exports = ({ config }) => ({
   ...config,
   android: {

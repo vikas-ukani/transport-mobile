@@ -6,18 +6,19 @@ import { router, useGlobalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
-    ActivityIndicator,
-    Image,
-    NativeModules,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  NativeModules,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 
+import { usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import RazorpayCheckout from "react-native-razorpay";
@@ -29,6 +30,11 @@ const CreatePostScreen = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { id } = useGlobalSearchParams();
+  // Get the current route/path name using the Expo Router's usePathname hook
+  // Get current last path name segment
+  const pathname = usePathname();
+  const lastPathSegment = pathname?.split("/").filter(Boolean).pop() || "";
+  const isRenewPost = lastPathSegment === "renew";
 
   const [images, setImages] = useState<string[]>([]);
   const [imageIds, setImageIds] = useState<string[]>([]);
@@ -119,10 +125,7 @@ const CreatePostScreen = () => {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImages([
-          // ...images,
-          ...result.assets.map((asset) => asset.uri),
-        ]);
+        setImages([...images, ...result.assets.map((asset) => asset.uri)]);
       }
     } catch (err: any) {
       toast.error(`Failed to select images ${err.message}`);
@@ -149,21 +152,24 @@ const CreatePostScreen = () => {
       if (id) {
         if (newImageIds.length) {
           newImageIds = Array.from(
-            new Set([...(newImageIds.length ? newImageIds : [])]),
+            new Set([...imageIds, ...(newImageIds.length ? newImageIds : [])]),
           );
         } else {
-          newImageIds = Array.from(new Set([...(newImageIds || [])]));
+          newImageIds = Array.from(
+            new Set([...imageIds, ...(newImageIds || [])]),
+          );
         }
       }
 
-      const postData = {
+      const postData: any = {
         title: data.title,
         content: data.content,
         imageIds: newImageIds,
       };
 
       let res = null;
-      if (id) {
+
+      if (id && isRenewPost === false) {
         res = await apiService.updatePost(postData, id as string);
       } else {
         // Fetch Order from backend for CREATE NEW POST
@@ -171,12 +177,12 @@ const CreatePostScreen = () => {
         try {
           orderData = await apiService.createPostPayOrder();
         } catch (err: any) {
-          console.log(`Failed to get payment order. ${err.message}`);
+          console.error(`Failed to get payment order. ${err.message}`);
           toast.error(`Failed to get payment order. ${err.message}`);
           return;
         }
         if (!orderData || !orderData.order?.id || !orderData.payAmount) {
-          console.log("Invalid order data from server.");
+          console.error("Invalid order data from server.");
           toast.error("Invalid order data from server.");
           return;
         }
@@ -185,7 +191,7 @@ const CreatePostScreen = () => {
         const name = process.env.EXPO_PUBLIC_APP_NAME || "Safar Path";
 
         if (!key) {
-          console.log(
+          console.error(
             "Razorpay Key is not configured. Please contact support.",
           );
           toast.error(
@@ -246,12 +252,29 @@ const CreatePostScreen = () => {
                   razorpay_signature: data.razorpay_signature,
                 });
                 if (verifyData.success) {
-                  res = await apiService.createPost({
-                    ...postData,
-                    razorpay_payment_id: verifyData.data.razorpay_payment_id,
-                  });
+                  if (id && isRenewPost) {
+                    const prev = Date.now();
+                    // parse in case it's a string (ISO, number, or Date)
+                    const prevDate = new Date(prev);
+                    // add 30 days (in ms)
+                    const extendedDate = new Date(
+                      prevDate.getTime() + 30 * 24 * 60 * 60 * 1000,
+                    );
+                    postData.expiredAt = extendedDate.toISOString();
+                    res = await apiService.updatePost(postData, id as string);
+                  } else {
+                    res = await apiService.createPost({
+                      ...postData,
+                      razorpay_payment_id: verifyData.data.razorpay_payment_id,
+                    });
+                  }
+
                   if (res.success) {
-                    toast.success("Post created successfully");
+                    toast.success(
+                      id && isRenewPost
+                        ? "Post has been renewed"
+                        : '"Post created successfully"',
+                    );
                     router.push("/(apps)/(tabs)");
                   } else {
                     toast.error(res.message);
@@ -260,7 +283,7 @@ const CreatePostScreen = () => {
                   toast.error(`Verification Failed: ${verifyData.message}`);
                 }
               } catch (err: any) {
-                console.log(
+                console.error(
                   `Could not verify payment: ${err?.message || "Unknown error"}`,
                 );
                 toast.error(
@@ -271,10 +294,9 @@ const CreatePostScreen = () => {
             .catch((error: any) => {
               if (error && error.code === 0) {
                 // user-cancelled or fallback
-                console.log("Payment cancelled by user.");
                 toast.error("Payment cancelled by user.");
               } else {
-                console.log(
+                console.error(
                   "error?.description",
                   error?.description ||
                     error?.message ||
@@ -292,15 +314,13 @@ const CreatePostScreen = () => {
           toast.error(
             "Could not launch Razorpay payment. Please restart the app or contact support.",
           );
-          console.log("Outer Razorpay open error:", err);
+          console.error("Outer Razorpay open error:", err);
         }
       }
-      console.log("findal res.success", res.success);
       if (res.success) {
         toast.success(
           id ? "Post updated successfully" : "Post created successfully",
         );
-        console.log("redirecting to main screen");
         router.push("/(apps)/(tabs)");
       } else {
         toast.error(res.message);
@@ -312,6 +332,15 @@ const CreatePostScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const allowToShowUploadImageButton = () => {
+    // Is renew then show upload button
+    if (id && isRenewPost) return true;
+    // hide if edit
+    else if (id) return false;
+    // Show if create
+    else return true;
   };
 
   return (
@@ -376,7 +405,7 @@ const CreatePostScreen = () => {
               ) : null}
             </View>
             {/* HIDE upload image button when there is id */}
-            {!id && (
+            {allowToShowUploadImageButton() && (
               <TouchableOpacity
                 className="items-center rounded-xl border-2 border-dashed !border-primary bg-gray-50 py-8"
                 onPress={selectPhoto}
@@ -405,7 +434,7 @@ const CreatePostScreen = () => {
                       source={{ uri }}
                       className="w-full h-36 rounded-xl"
                     />
-                    {!id && (
+                    {allowToShowUploadImageButton() && (
                       <TouchableOpacity
                         className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1.5 shadow-lg"
                         onPress={() => removeImage(index)}
@@ -452,7 +481,11 @@ const CreatePostScreen = () => {
                 {/* <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" /> */}
                 <View className="ml-2 flex-row items-center gap-2 text-center text-lg font-bold !text-white">
                   <Text className="text-white">
-                    {t("post.createPost", "Pay 100 and POST")}
+                    {id && isRenewPost
+                      ? t("post.payAndRenew", "Pay 100 and Renew")
+                      : id
+                        ? t("post.update", "Update")
+                        : t("post.createPost", "Pay 100 and POST")}
                   </Text>
                   {loading && <ActivityIndicator color="#fff" size="small" />}
                 </View>

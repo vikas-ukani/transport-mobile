@@ -1,14 +1,19 @@
 import { toast } from "@/lib/toast";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+// import Mapbox from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TouchableOpacity, View } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE, Region, UrlTile } from "react-native-maps";
+import MapView, { Marker, Region, UrlTile } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { apiService } from "../../services/api.service";
+
+const googleMapKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+// const mapBoxKey = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+// Mapbox.setAccessToken(mapBoxKey);
 
 // Types
 type RegionT = Region & {
@@ -35,16 +40,16 @@ const GARAGE_TYPES = [
 ];
 
 function getRadiusFromRegion(region: RegionT) {
-  // Approximate radius in km, from latitudeDelta (surface approximation)
   if (!region.latitudeDelta) return 10;
-  // Each degree latitude ~111km, take half the displayed delta as radius
-  return Math.max((region.latitudeDelta * 111) / 2, 1); // minimum 1km
+  return Math.max((region.latitudeDelta * 111) / 2, 1);
 }
 
 const GarageMapScreen = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const mapRef = useRef<MapView | null>(null);
+
+  const isInitialLoad = useRef(true);
 
   const [region, setRegion] = useState<RegionT>({
     latitude: user?.latitude || 21.2160293,
@@ -56,44 +61,57 @@ const GarageMapScreen = () => {
   const [garages, setGarages] = useState<Garage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGarageType, setSelectedGarageType] = useState<string | null>("");
-
-  // Fetch initial user location
+  const [selectedGarageType, setSelectedGarageType] = useState<string | null>(
+    "",
+  );
+  // 2. Use useFocusEffect strictly for user-driven structural focus events
   useFocusEffect(
     useCallback(() => {
+      // Only execute position tracking on the very first screen layout mount
+      if (!isInitialLoad.current) return;
+
       (async () => {
         try {
           let { status } = await Location.requestForegroundPermissionsAsync();
           if (status !== "granted") {
-            toast.remove();
-            toast.error(t("garage.permissionDenied", "Permission to access location was denied"));
+            toast.dismiss();
+            toast.error(
+              t(
+                "garage.permissionDenied",
+                "Permission to access location was denied",
+              ),
+            );
             return;
           }
 
           try {
-            const location = await Location.getCurrentPositionAsync({});
+            // Accuracy optimized balanced mode prevents freeze delays on simulators
+            const location = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            });
+
             const newRegion: RegionT = {
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
               latitudeDelta: 0.05,
               longitudeDelta: 0.05,
             };
+
+            isInitialLoad.current = false; // Kill future loops immediately
             setRegion(newRegion);
-            mapRef.current?.animateToRegion(newRegion, 1000);
+
+            // Small layout timeout lets the native platform paint the map container first
+            setTimeout(() => {
+              mapRef.current?.animateToRegion(newRegion, 800);
+            }, 100);
+
             fetchNearbyGarages(newRegion, selectedGarageType);
           } catch (locError: any) {
-            toast.dismiss();
-            toast.error(
-              t(
-                "garage.locationUnavailable",
-                "Current location is unavailable. Make sure that location services are enabled in your device settings.",
-              ),
-            );
             console.error("Error getting device location:", locError);
+            // If GPS fails, still attempt to fetch garages using your fallback state coords!
+            fetchNearbyGarages(region, selectedGarageType);
           }
         } catch (error) {
-          toast.dismiss();
-          toast.error(t("garage.permissionError", "Error accessing location permissions."));
           console.error("Error requesting location permission:", error);
         }
       })();
@@ -130,7 +148,6 @@ const GarageMapScreen = () => {
         );
         setGarages(visible);
       } catch (err: any) {
-        console.log("err.message", err.message);
         setGarages([]);
       } finally {
         setLoading(false);
@@ -156,10 +173,11 @@ const GarageMapScreen = () => {
       {GARAGE_TYPES.map((type) => (
         <TouchableOpacity
           key={type.value}
-          className={`px-4 py-2 rounded-xl border ${selectedGarageType === type.value
-              ? "bg-primary border-primary"
-              : "bg-gray-50 border-gray-200"
-            }`}
+          className={`rounded-xl border px-4 py-2 ${
+            selectedGarageType === type.value
+              ? "border-primary bg-primary"
+              : "border-gray-200 bg-gray-50"
+          }`}
           onPress={() =>
             setSelectedGarageType(
               selectedGarageType === type.value ? null : type.value,
@@ -167,8 +185,9 @@ const GarageMapScreen = () => {
           }
         >
           <Text
-            className={`font-semibold ${selectedGarageType === type.value ? "text-white" : "text-gray-800"
-              }`}
+            className={`font-semibold ${
+              selectedGarageType === type.value ? "text-white" : "text-gray-800"
+            }`}
           >
             {t(type.label, {
               defaultValue:
@@ -202,14 +221,21 @@ const GarageMapScreen = () => {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-screen">
-      <View className="flex-row justify-between items-center px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
-        <Text className="text-xl font-bold text-gray-900">
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+      <View
+        className="flex-row items-center justify-between border-b border-b-[#f4f4f4] bg-white px-5 py-4 shadow"
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.04,
+          shadowRadius: 1,
+        }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: "bold", color: "#111827" }}>
           {t("garage.title", "Find Garage")}
         </Text>
         {user?.type === "customer" && (
           <TouchableOpacity
-            className=""
             activeOpacity={0.8}
             onPress={() =>
               router.push("/(apps)/garage/my-garages", {
@@ -219,10 +245,13 @@ const GarageMapScreen = () => {
             }
           >
             <View
-              className={`flex-row p-2 px-8 items-center !text-white gap-3 rounded-xl shadow-md bg-primary`}
+              className="flex-row gap-3 items-center px-8 py-2 text-white rounded-xl bg-primary"
+              style={{ elevation: 2 }}
             >
-              {/* <Ionicons name="" size={22} color="white" /> */}
-              <Text className="text-lg font-semibold !text-white">
+              <Text
+                style={{ fontSize: 18, fontWeight: "600" }}
+                className="text-white"
+              >
                 {t("garage.myGarages", "View Garages")}
               </Text>
             </View>
@@ -233,105 +262,109 @@ const GarageMapScreen = () => {
       {/* Garage type filter bar */}
       {renderGarageTypeFilter()}
 
-      <View style={{ flex: 1 }} className="!h-full">
+      <View style={{ flex: 1, minHeight: 200, minWidth: "100%" }}>
         {error && (
-          <View className="flex absolute right-0 left-0 top-12 z-10 items-center">
-            <Text className="text-red-500">
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: 48,
+              zIndex: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#ef4444" }}>
               {t("garage.error", error ?? "An error occurred")}
             </Text>
           </View>
         )}
+
         <MapView
           ref={mapRef}
-          style={{ flex: 1 }}
-          region={{
-            latitude: region.latitude || 21.2160293,
-            longitude: region.longitude || 72.8887858,
-            latitudeDelta: region.latitudeDelta || 0.05,
-            longitudeDelta: region.longitudeDelta || 0.05,
+          key={garages.length}
+          style={{
+            flex: 1,
+            minHeight: 350,
+            // --- Ensures map is always drawn even if view bug --- //
+            // ...(Platform.OS === "android" ? { elevation: 1 } : { zIndex: 1 }),
           }}
-          provider={PROVIDER_GOOGLE}
+          initialRegion={region}
+          provider={undefined}
+          // region={{
+          //   latitude: region.latitude || 37.4219979,
+          //   longitude: region.longitude || -122.084,
+          //   latitudeDelta: region.latitudeDelta || 0.05,
+          //   longitudeDelta: region.longitudeDelta || 0.05,
+          // }}
+          // provider={PROVIDER_GOOGLE}
           onRegionChangeComplete={handleRegionChangeComplete}
-          scrollEnabled={true}
           zoomEnabled={true}
           showsMyLocationButton={true}
           zoomControlEnabled={true}
           showsUserLocation={true}
-          followsUserLocation={true}
+          showsIndoorLevelPicker={true}
         >
           <UrlTile
-            urlTemplate="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+            urlTemplate={`https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}?access_token=${googleMapKey}`}
+            maximumZ={19}
+            tileSize={256}
+            zIndex={1} // Keeps tiles under markers
+          />
+        
+          {/* Do not remove this */}
+          {/* Render UrlTile first for custom base map, then Marker overlays explicitly above it */}
+          {/* <UrlTile
+            urlTemplate={`https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}?access_token=${googleMapKey}`}
             maximumZ={20}
             tileSize={256}
-          />
+            zIndex={0} // Make sure it's at the bottom
+          /> */}
 
-          {/* Render found garages */}
           {garages.map((garage) => (
             <Marker
               key={garage.id}
               coordinate={{
-                latitude: garage.latitude,
-                longitude: garage.longitude,
+                latitude: Number(garage.latitude),
+                longitude: Number(garage.longitude),
               }}
+              // zIndex={9999}
+              tracksViewChanges={true} // Helps fix invisible markers on tile maps sometimes
               title={garage.name}
+              // pinColor="#2563eb" // Optionally set a color to ensure visibility over custom tiles
+              // opacity={1}
             >
-              <MaterialIcons
-                name="car-repair"
-                size={32}
-                className="!text-primary"
-              />
-              <View className="rounded-xl p-4 min-w-[220px] shadow-lg">
-                <Text
-                  style={{ fontWeight: "600", fontSize: 17, marginBottom: 3 }}
-                >
-                  {garage.name}
-                </Text>
-                {garage.address ? (
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      marginBottom: 6,
-                      color: "#555",
-                    }}
-                    numberOfLines={2}
-                  >
-                    {garage.address}
-                  </Text>
-                ) : null}
-                {garage.mobile ? (
-                  <TouchableOpacity
-                    onPress={() => {
-                      // Use dialpad with the mobile number
-                      const phone = garage.mobile.replace(/[^+\d]/g, "");
-                      if (phone) {
-                        // Open the dialer
-                        import("react-native").then(({ Linking }) => {
-                          Linking.openURL(`tel:${phone}`);
-                        });
-                      }
-                    }}
-                    style={{
-                      backgroundColor: "#E8F0FE",
-                      borderRadius: 8,
-                      paddingVertical: 7,
-                      paddingHorizontal: 12,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      alignSelf: "flex-start",
-                      marginTop: 8,
-                    }}
-                  >
-                    <Ionicons
-                      name="call-outline"
-                      size={18}
-                      color="#2574A9"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={{ color: "#2574A9", fontWeight: "500" }}>
-                      {garage.mobile}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
+              <View
+                className="justify-center items-center w-10 h-10"
+                style={{
+                  width: 44,
+                  height: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#ffffff",
+                  borderWidth: 2,
+                  borderColor: "#2563eb",
+                  overflow: "hidden", // Stops clipping bugs
+
+                  borderRadius: 99,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 3,
+                  elevation: 8,
+                }}
+              >
+                <MaterialIcons
+                  name="car-repair"
+                  size={36}
+                  color="#2563eb"
+                  style={{
+                    // Provide background for icon to ensure it's visible on any tile
+                    backgroundColor: "rgba(255,255,255,0.75)",
+                    borderRadius: 20,
+                    padding: 1,
+                  }}
+                />
               </View>
             </Marker>
           ))}

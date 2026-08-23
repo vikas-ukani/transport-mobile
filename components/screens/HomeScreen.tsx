@@ -4,11 +4,11 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { RefreshControl } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +28,7 @@ export interface Post {
   userId: string;
   userName: string;
   createdAt: string;
+  expiredAt: string;
   user?: User | null;
 }
 const POSTS_PER_PAGE = 10;

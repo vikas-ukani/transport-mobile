@@ -16,7 +16,6 @@ export default function AppDrawerContent() {
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
 
   const closeThen = (path: string) => {
-    // For expo-router's Drawer, just navigate; closing handled internally
     requestAnimationFrame(() => router.push(path as any));
   };
 

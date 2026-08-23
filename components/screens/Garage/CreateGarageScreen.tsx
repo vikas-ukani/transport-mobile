@@ -271,7 +271,6 @@ const CreateGarageScreen = () => {
                       images: [],
                     });
                     setImages([]);
-                    console.log('Redirecting')
                     router.push("/(apps)/garage/my-garages");
                   } else {
                     toast.error(resData.message);
@@ -328,7 +327,6 @@ const CreateGarageScreen = () => {
         });
 
         setImages([]);
-        console.log('Redirecting')
         router.push("/(apps)/garage/my-garages");
 
       } else {

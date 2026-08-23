@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getStoreBy, LOCALE_KEY, setStoreBy } from "../../lib/session";
 import DrawerMenuButton from "./DrawerMenuButton";
 
-const HomeHeader = ({ navigation }: { navigation: any }) => {
+const HomeHeader = () => {
   const { t, i18n } = useTranslation();
   const { logout, user } = useAuth();
   const [languageMenuVisible, setLanguageMenuVisible] = useState(false);

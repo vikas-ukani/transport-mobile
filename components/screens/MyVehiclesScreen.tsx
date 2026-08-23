@@ -1,3 +1,4 @@
+import { toast } from "@/lib/toast";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
@@ -6,21 +7,8 @@ import { useTranslation } from "react-i18next";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as yup from "yup";
-import { toast } from "@/lib/toast";
 import apiService, { getBaseUrl } from "../../services/api.service";
 import ConfirmPopup from "../common/ConfirmPopup";
-
-const schema = yup.object().shape({
-  driverName: yup.string().required("Driver Name is required"),
-  mobileNumber: yup.string().required("Driver mobile is required"),
-  rcNumber: yup.string().required("RC Book number is required"),
-  truckType: yup.string().required("Truck type is required"),
-  bodyType: yup.string().required("Body type is required"),
-  truckLength: yup.string().required("Truck length is required"),
-  loadCapacity: yup.string().required("Load capacity is required"),
-  truckHeight: yup.string().required("Truck height is required"),
-});
 
 const MyVehiclesScreen = () => {
   const { t } = useTranslation();
@@ -151,10 +139,10 @@ const MyVehiclesScreen = () => {
             </View>
           </View>
         </View>
-        <View className="flex-row gap-4 !w-full items-center justify-between">
+        <View className="!w-full flex-row items-center justify-between gap-4">
           {/* Status */}
           <View
-            className={`px-4 py-2 items-center rounded-lg ml-2 ${
+            className={`ml-2 items-center rounded-lg px-4 py-2 ${
               item.status === "verified" ? "bg-green-100" : "bg-yellow-100"
             }`}
           >
@@ -210,6 +198,29 @@ const MyVehiclesScreen = () => {
             </Text>
           </View>
         )}
+        {item.status === "REJECTED" && (
+          <View className="flex-row items-center p-2 bg-white rounded-xl border-2 shadow-sm border-danger/80">
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              className="mt-1 !text-danger"
+            />
+            <View className="flex-1 ml-3">
+              <Text
+                className="text-sm font-medium text-danger"
+                numberOfLines={3}
+                ellipsizeMode="tail"
+                style={{ flexWrap: "wrap" }}
+              >
+                {item.statusRejectionMessage ||
+                  t(
+                    "vehicles.statusRejectionMessage",
+                    "Verification has been rejected. Please update information and try again.",
+                  )}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -239,7 +250,7 @@ const MyVehiclesScreen = () => {
           onPress={() => router.push("/(apps)/vehicle/new-vehicle")}
         >
           <View
-            className={`flex-row p-2 px-8 items-center !text-white gap-3 rounded-xl shadow-md bg-primary`}
+            className={`flex-row items-center gap-3 rounded-xl bg-primary p-2 px-8 !text-white shadow-md`}
           >
             <Ionicons name="add-circle-outline" size={22} color="white" />
             <Text className="text-lg font-semibold !text-white">
